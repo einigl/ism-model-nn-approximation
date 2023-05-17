@@ -585,6 +585,9 @@ class NeuralNetwork(nn.Module, ABC):
         module_path: Optional[str] = None,
         overwrite: bool = True
     ) -> None:
+        if module_path is not None and not os.path.isdir(module_path):
+            os.mkdir(module_path)
+
         if module_path is None:
             path = module_name
         else:

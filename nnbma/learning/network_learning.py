@@ -289,7 +289,7 @@ def learning_procedure(
         dataloader_train = DataLoader(
             train_set
             if mask_dataset is None
-            else TensorDataset(train_set._x, train_set._y, train_mask._m),
+            else TensorDataset(train_set.x, train_set.y, train_mask._m),
             _batch_size,
             shuffle=True,
             drop_last=True,
@@ -298,7 +298,7 @@ def learning_procedure(
         dataloader_train_eval = DataLoader(
             train_set
             if mask_dataset is None
-            else TensorDataset(train_set._x, train_set._y, train_mask._m),
+            else TensorDataset(train_set.x, train_set.y, train_mask._m),
             len(train_set),
             shuffle=False,
             drop_last=False,
@@ -307,7 +307,7 @@ def learning_procedure(
         dataloader_val_eval = DataLoader(
             val_set
             if mask_dataset is None
-            else TensorDataset(val_set._x, val_set._y, val_mask._m),
+            else TensorDataset(val_set.x, val_set.y, val_mask._m),
             len(val_set),
             shuffle=False,
             drop_last=False,
@@ -330,7 +330,7 @@ def learning_procedure(
                 dataloader_train = DataLoader(
                     train_set
                     if mask_dataset is None
-                    else TensorDataset(train_set._x, train_set._y, train_mask._m),
+                    else TensorDataset(train_set.x, train_set.y, train_mask._m),
                     _batch_size,
                     shuffle=True,
                     drop_last=True,
@@ -465,6 +465,8 @@ def learning_procedure(
     model.eval()
 
     toc = datetime.datetime.now()
+
+    print()
 
     return {
         "train_loss": train_loss,

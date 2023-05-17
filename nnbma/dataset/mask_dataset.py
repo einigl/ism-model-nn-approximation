@@ -48,21 +48,7 @@ class MaskDataset(Dataset):
             Number of entries.
         """
         return self._m.size(0)
-
-    @property
-    def n_outputs(self) -> int:
-        """
-        Number of output features.
-        """
-        return self._m.size(1)
-
-    @property
-    def features_names(self) -> int:
-        """
-        Features names.
-        """
-        return self._features_names
-
+    
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
         Returns the entries of indice(s) idx.
@@ -78,6 +64,27 @@ class MaskDataset(Dataset):
             Input and output entries.
         """
         return self._m[idx]
+    
+    @property
+    def m(self) -> Tensor:
+        """
+        Mask Tensor.
+        """
+        return self._m
+
+    @property
+    def n_outputs(self) -> int:
+        """
+        Number of output features.
+        """
+        return self.m.size(1)
+
+    @property
+    def features_names(self) -> int:
+        """
+        Features names.
+        """
+        return self._features_names
 
     @overload
     def getall(self, numpy: Literal[True]) -> np.ndarray:
@@ -115,7 +122,7 @@ class MaskDataset(Dataset):
         )
 
     def to_pandas(self) -> pd.DataFrame:
-        return pd.DataFrame(self._m, columns=self._features_names)
+        return pd.DataFrame(self.m, columns=self._features_names)
 
     def join(
         self: "MaskDataset", other: "MaskDataset"
@@ -171,7 +178,7 @@ class MaskDataset(Dataset):
         Dict[str, np.ndarray]
     ]:
         return {
-            "frac": self._m.mean(axis=0).numpy(),
+            "frac": self.m.mean(axis=0).numpy(),
         }
 
     def save(self, filename: str, path: Optional[str] = None) -> None:
@@ -210,6 +217,17 @@ class MaskSubset(MaskDataset):
         self._dataset: MaskDataset = dataset
         self._indices: Sequence[int] = indices
 
+    def __len__(self) -> int:
+        """
+        Returns the number of entries in the dataset.
+
+        Returns
+        -------
+        int
+            Number of entries.
+        """
+        return len(self._indices)
+
     def __getitem__(self, idx) -> Tensor:
         """
         Returns the entries of indice(s) idx.
@@ -225,17 +243,13 @@ class MaskSubset(MaskDataset):
             Input and output entries.
         """
         return self._dataset[self._indices[idx]]
-
-    def __len__(self) -> int:
+    
+    @property
+    def m(self) -> Tensor:
         """
-        Returns the number of entries in the dataset.
-
-        Returns
-        -------
-        int
-            Number of entries.
+        Mask Tensor.
         """
-        return len(self._indices)
+        return self._dataset._m[self._indices]
 
     def issubsetof(self, dataset: MaskDataset) -> bool:
         """

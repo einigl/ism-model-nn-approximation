@@ -60,35 +60,7 @@ class RegressionDataset(Dataset):
             Number of entries.
         """
         return self._x.size(0)
-
-    @property
-    def n_inputs(self) -> int:
-        """
-        Number of input features.
-        """
-        return self._x.size(1)
-
-    @property
-    def n_outputs(self) -> int:
-        """
-        Number of output features.
-        """
-        return self._y.size(1)
-
-    @property
-    def inputs_names(self) -> int:
-        """
-        Inputs names.
-        """
-        return self._inputs_names
-
-    @property
-    def outputs_names(self) -> int:
-        """
-        Outputs names.
-        """
-        return self._outputs_names
-
+    
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
         Returns the entries of indice(s) idx.
@@ -104,6 +76,48 @@ class RegressionDataset(Dataset):
             Input and output entries.
         """
         return self._x[idx], self._y[idx]
+    
+    @property
+    def x(self) -> Tensor:
+        """
+        Input tensor.
+        """
+        return self._x
+    
+    @property
+    def y(self) -> Tensor:
+        """
+        Output tensor.
+        """
+        return self._y
+
+    @property
+    def n_inputs(self) -> int:
+        """
+        Number of input features.
+        """
+        return self.x.size(1)
+
+    @property
+    def n_outputs(self) -> int:
+        """
+        Number of output features.
+        """
+        return self.y.size(1)
+
+    @property
+    def inputs_names(self) -> int:
+        """
+        Inputs names.
+        """
+        return self._inputs_names
+
+    @property
+    def outputs_names(self) -> int:
+        """
+        Outputs names.
+        """
+        return self._outputs_names
 
     def has_nan(self) -> Tuple[bool, bool]:
         """
@@ -116,7 +130,7 @@ class RegressionDataset(Dataset):
         tuple of bool
             Evaluate the presence of NaN in the input and output sets.
         """
-        return self._x.isnan().any().item(), self._y.isnan().any().item()
+        return self.x.isnan().any().item(), self.y.isnan().any().item()
 
     def has_nonfinite(self) -> Tuple[bool, bool]:
         """
@@ -129,7 +143,7 @@ class RegressionDataset(Dataset):
         tuple of bool
             Evaluate the presence of non finite values in the input and output sets.
         """
-        return not self._x.isfinite().all().item(), not self._y.isfinite().all().item()
+        return not self.x.isfinite().all().item(), not self.y.isfinite().all().item()
 
     def apply_transf(
         self,
@@ -156,8 +170,8 @@ class RegressionDataset(Dataset):
         if y_op is None:
             y_op = lambda t: t
         return type(self)(
-            x_op(self._x.numpy()),
-            y_op(self._y.numpy()),
+            x_op(self.x.numpy()),
+            y_op(self.y.numpy()),
             self._inputs_names,
             self._outputs_names,
         )
@@ -200,8 +214,8 @@ class RegressionDataset(Dataset):
         )
 
     def to_pandas(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        return pd.DataFrame(self._x, columns=self._inputs_names), pd.DataFrame(
-            self._y, columns=self._outputs_names
+        return pd.DataFrame(self.x, columns=self._inputs_names), pd.DataFrame(
+            self.y, columns=self._outputs_names
         )
 
     def join(
@@ -249,7 +263,7 @@ class RegressionDataset(Dataset):
             raise ValueError(
                 "set2 is not a subset of set1 so it cannot be substracted."
             )
-        new_indices = [i for i in range(len(self)) if i not in other.indices]
+        new_indices = [i for i in range(len(self)) if i not in other._indices]
         # Algo can be improved.
         return RegressionSubset(self, new_indices)
 
@@ -258,15 +272,15 @@ class RegressionDataset(Dataset):
         Dict[str, np.ndarray]
     ]:
         return {
-            "mean": self._x.mean(axis=0).numpy(),
-            "std": self._x.std(axis=0).numpy(),
-            "min": self._x.min(axis=0).numpy(),
-            "max": self._x.max(axis=0).numpy(),
+            "mean": self.x.mean(axis=0).numpy(),
+            "std": self.x.std(axis=0).numpy(),
+            "min": self.x.min(axis=0).numpy(),
+            "max": self.x.max(axis=0).numpy(),
         }, {
-            "mean": self._y.mean(axis=0).numpy(),
-            "std": self._y.std(axis=0).numpy(),
-            "min": self._y.min(axis=0).numpy(),
-            "max": self._y.max(axis=0).numpy(),
+            "mean": self.y.mean(axis=0).numpy(),
+            "std": self.y.std(axis=0).numpy(),
+            "min": self.y.min(axis=0).numpy(),
+            "max": self.y.max(axis=0).numpy(),
         }
 
     def save(self, filename: str, path: Optional[str] = None) -> None:
@@ -305,6 +319,17 @@ class RegressionSubset(RegressionDataset):
         self._dataset: RegressionDataset = dataset
         self._indices: Sequence[int] = indices
 
+    def __len__(self) -> int:
+        """
+        Returns the number of entries in the dataset.
+
+        Returns
+        -------
+        int
+            Number of entries.
+        """
+        return len(self._indices)
+
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
         Returns the entries of indice(s) idx.
@@ -321,16 +346,19 @@ class RegressionSubset(RegressionDataset):
         """
         return self._dataset[self._indices[idx]]
 
-    def __len__(self) -> int:
+    @property
+    def x(self) -> Tensor:
         """
-        Returns the number of entries in the dataset.
-
-        Returns
-        -------
-        int
-            Number of entries.
+        Input tensor.
         """
-        return len(self._indices)
+        return self._dataset._x[self._indices]
+    
+    @property
+    def y(self) -> Tensor:
+        """
+        Output tensor.
+        """
+        return self._dataset._y[self._indices]
 
     def issubsetof(self, dataset: RegressionDataset) -> bool:
         """
