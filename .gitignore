@@ -1,6 +1,10 @@
 */settings.json
 
 meudon-pdr/data/*
+!meudon-pdr/data/README.md
+
+article-notebooks/out-*
+example-notebooks/out-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

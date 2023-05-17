@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,24 +12,12 @@ import pandas as pd
 from tqdm import tqdm
 
 from nnbma.dataset import MaskDataset, RegressionDataset
-from nnbma.learning import LearningParameters, learning_procedure
+from nnbma.learning import LearningParameters
 from nnbma.networks import NeuralNetwork
-from nnbma.preprocessing import (
-    ColumnwiseOperator,
-    NormTypes,
-    Operator,
-    SequentialOperator,
-    id,
-    log10,
-    pow10,
-)
 
-from helpers.preprocessing import prepare_data, normalization_operators
+from helpers.preprocessing import prepare_data, build_data_transformers
 from helpers.plots import Plotter
 from helpers.lines import filter_molecules, molecules_among_lines, molecule_and_transition
-
-
-OUT_PATH = os.path.join(os.path.dirname(__file__), "nn-regression-results")
 
 
 def save_readme(
@@ -67,8 +55,6 @@ def save_readme(
                 f"Computation time ({n_batch} entries, {repeat} iterations): {1e3*_mean:.3f} ms +/- {1e3*_pm:.3f}"
             ]
         )
-
-    return
 
 
 def save_losses(
@@ -364,68 +350,6 @@ def badly_reconstructed(
     )
     new_df.to_csv(os.path.join(path, "badly_reconstructed_profiles", "table.csv"))
 
-
-def errors_distributions(
-    dataset_ref: RegressionDataset,
-    dataset_out: RegressionDataset,
-    path: str,
-    dirname: str,
-    dataset_mask: Optional[MaskDataset] = None,
-):
-    """TODO"""
-
-    path = os.path.join(path, dirname)
-
-    os.mkdir(path)
-
-    # Errors computation
-
-    x, y_ref = dataset_ref.getall(numpy=True)
-    _, y_out = dataset_out.getall(numpy=True)
-    if dataset_mask is not None:
-        mask = dataset_mask.getall(numpy=True)
-        y_ref = np.where(mask, y_ref, np.nan)
-        y_out = np.where(mask, y_out, np.nan)
-
-    errors = np.abs(y_out - y_ref)
-
-    # Percentiles of errors versus target value
-
-    filename = os.path.join(path, "percentiles.png")
-
-    win_factor = 10
-    n_points = 100
-
-    points = np.logspace(
-        np.log10(win_factor) + np.nanmin(y_ref),
-        np.nanmax(y_ref) - np.log10(win_factor),
-        n_points,
-    )
-
-    means = np.zeros(n_points)
-    percs = np.zeros((n_points, 5))
-
-    for i, p in enumerate(points):
-        _data = errors[(y_ref > p / win_factor) & (y_ref < p * win_factor)]
-        means[i] = np.nanmean(_data)
-        percs[i] = np.nanpercentile(_data, (0.5, 5, 50, 95, 99.5))
-
-    plt.figure(dpi=125)
-
-    plt.plot(points, means, label="Mean")
-    plt.plot(points, percs[:, 2], label="Median")
-    plt.fill_between(points, percs[:, 0], percs[:, 4], label="99\\%", alpha=0.5)
-    plt.fill_between(points, percs[:, 1], percs[:, 3], label="90\\%", alpha=0.5)
-    plt.xscale("log")
-
-    plt.xlabel("Target value")
-    plt.ylabel("Abs. error (log)")
-    plt.legend()
-
-    plt.savefig(filename)
-    plt.close()
-
-
 def masked_values(
     dataset: RegressionDataset,
     dataset_mask: MaskDataset,
@@ -448,60 +372,15 @@ def masked_values(
     return
 
 
-### FULL PROCEDURE ###
-def build_data_transformers(
-    dataset_train: RegressionDataset,
-) -> Tuple[Operator, Operator, Operator, Operator]:
-
-    # x operators
-
-    scale_operator_x = ColumnwiseOperator(
-        [
-            log10,  # P
-            log10,  # radm
-            log10,  # Avmax
-            id,  # angle
-        ]
-    )
-
-    norm_type = NormTypes.MEAN0STD1
-
-    norm_operator_x, unnorm_operator_x = normalization_operators(
-        dataset_train.apply_transf(scale_operator_x, None).to_pandas()[0], norm_type
-    )
-
-    unscale_operator_x = ColumnwiseOperator(
-        [
-            pow10,  # P
-            pow10,  # radm
-            pow10,  # Avmax
-            id,  # angle
-        ]
-    )
-
-    operator_x = SequentialOperator([scale_operator_x, norm_operator_x])
-    inverse_operator_x = SequentialOperator([unnorm_operator_x, unscale_operator_x])
-
-    # y operators
-
-    # operator_y = Operator(log10)
-    # inverse_operator_y = Operator(pow10)
-
-    operator_y = Operator(id)
-    inverse_operator_y = Operator(id)
-
-    return operator_x, inverse_operator_x, operator_y, inverse_operator_y
-
-
-def procedure(
+def save_results(
+    results: Dict[str, object],
     lines: List[str],
     model: NeuralNetwork,
     learning_params: LearningParameters,
-    dirname: str,
-    mask: bool=True,
+    mask: bool,
+    directory: str,
     architecture_name: Optional[str]=None,
     plot_profiles: bool=True,
-    verbose: bool=True,
 ) -> None:
     """TODO"""
 
@@ -524,45 +403,6 @@ def procedure(
         operator_y,
         inverse_operator_y,
     ) = build_data_transformers(dataset_train)
-
-    ## Architecture
-
-    model.inputs_transformer = operator_x
-    model.outputs_transformer = inverse_operator_y
-
-    # Test of restriction
-    model.eval()
-    model.restrict_to_output_subset(dataset_train.outputs_names)
-    model.train()
-
-    # Test of copy
-    model.copy()
-
-    print(
-        f"Number of parameters: {model.count_parameters(learnable_only=False):,} ({model.count_bytes(learnable_only=False, display = True)})"
-    )
-    print(
-        f"Number of learnable parameters: {model.count_parameters():,} ({model.count_bytes(display = True)})"
-    )
-
-    ## Normalization
-
-    dataset_train_transf = dataset_train.apply_transf(operator_x, operator_y)
-    dataset_val_transf = dataset_val.apply_transf(operator_x, operator_y)
-
-    # meth = getattr(model, "update_standardization", None)
-    # if callable(meth):
-    #     meth(dataset_train_transf.getall()[0]) TODO
-
-    ## Learning procedure
-
-    results = learning_procedure(
-        model,
-        (dataset_train_transf, dataset_val_transf),
-        learning_params,
-        (dataset_mask_train, dataset_mask_val),
-        verbose=verbose,
-    )
 
     ## Get predictions
 
@@ -589,17 +429,13 @@ def procedure(
     ## Save results
 
     # Creates directory
-    if not os.path.isdir(OUT_PATH):
-        os.mkdir(OUT_PATH)
-
-    path = os.path.join(OUT_PATH, dirname)
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
 
     if architecture_name is None:
-        path = os.path.join(path, datetime.datetime.now().strftime("%Y_%m_%d"))
+        path = os.path.join(directory, datetime.datetime.now().strftime("%Y_%m_%d"))
     else:
-        path = os.path.join(path, architecture_name)
+        path = os.path.join(directory, architecture_name)
 
     if os.path.isdir(path):
         path += "__{}"
@@ -670,26 +506,6 @@ def procedure(
     )
 
     print("Spreadsheet of worst estimations and their profiles saved")
-
-    # Save some graphical representation of the errors distribution
-
-    # errors_distributions(
-    #     dataset_train,
-    #     dataset_train_out,
-    #     path,
-    #     "errors_distributions_train",
-    #     dataset_mask_train
-    # )
-
-    # errors_distributions(
-    #     dataset_val,
-    #     dataset_val_out,
-    #     path,
-    #     "errors_distributions_val",
-    #     dataset_mask_val
-    # )
-
-    # print('Errors distributions figures saved')
 
     # Save masked values spreadsheet
     if dataset_mask_train is not None:

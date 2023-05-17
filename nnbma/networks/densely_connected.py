@@ -98,9 +98,9 @@ class DenselyConnected(NeuralNetwork):
             )
         self.layers_sizes.append(output_features)
 
-        print('layers_sizes')
-        print(self.layers_sizes) # TODO
-        print(sum(self.layers_sizes[:-1]))
+        # print('layers_sizes')
+        # print(self.layers_sizes) # TODO
+        # print(sum(self.layers_sizes[:-1]))
 
     def forward(self, x: Tensor) -> Tensor:
         """

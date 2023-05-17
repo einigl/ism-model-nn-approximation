@@ -14,6 +14,12 @@ from nnbma.preprocessing import (
     InverseNormalizer,
     Normalizer,
     NormTypes,
+    ColumnwiseOperator,
+    Operator,
+    SequentialOperator,
+    id,
+    log10,
+    pow10,
 )
 
 from helpers.lines import filter_molecules
@@ -238,3 +244,46 @@ def normalization_operators(
     df: pd.DataFrame, norm_type: NormTypes
 ) -> Tuple[Normalizer, InverseNormalizer]:
     return Normalizer(df, norm_type), InverseNormalizer(df, norm_type)
+
+def build_data_transformers(
+    dataset_train: RegressionDataset,
+) -> Tuple[Operator, Operator, Operator, Operator]:
+
+    # x operators
+
+    scale_operator_x = ColumnwiseOperator(
+        [
+            log10,  # P
+            log10,  # radm
+            log10,  # Avmax
+            id,  # angle
+        ]
+    )
+
+    norm_type = NormTypes.MEAN0STD1
+
+    norm_operator_x, unnorm_operator_x = normalization_operators(
+        dataset_train.apply_transf(scale_operator_x, None).to_pandas()[0], norm_type
+    )
+
+    unscale_operator_x = ColumnwiseOperator(
+        [
+            pow10,  # P
+            pow10,  # radm
+            pow10,  # Avmax
+            id,  # angle
+        ]
+    )
+
+    operator_x = SequentialOperator([scale_operator_x, norm_operator_x])
+    inverse_operator_x = SequentialOperator([unnorm_operator_x, unscale_operator_x])
+
+    # y operators
+
+    # operator_y = Operator(log10)
+    # inverse_operator_y = Operator(pow10)
+
+    operator_y = Operator(id)
+    inverse_operator_y = Operator(id)
+
+    return operator_x, inverse_operator_x, operator_y, inverse_operator_y

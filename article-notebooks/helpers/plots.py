@@ -256,7 +256,7 @@ class Plotter:
         y_op = lambda t: 10**t
         for idx, line in enumerate(lines_to_plot):
 
-            m = df_mask[line].values.astype(np.bool)
+            m = df_mask[line].values.astype(bool)
 
             if errors:
                 err = 100 * (10 ** np.abs(y_grid[:, idx] - df[line].values) - 1)
@@ -659,7 +659,7 @@ class Plotter:
         x_op = lambda t: t
         y_op = lambda t: 10**t
 
-        m = df_mask[line_to_plot].values.astype(np.bool)
+        m = df_mask[line_to_plot].values.astype(bool)
 
         if errors:
             err = 100 * (10 ** np.abs(y_grid[:, 0] - df[line_to_plot].values) - 1)
