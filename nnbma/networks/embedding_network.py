@@ -93,7 +93,7 @@ class EmbeddingNetwork(NeuralNetwork):
         for net in self.subnetworks:
             res.append(net.forward(x))
 
-        return torch.concat(res, dim=1)[:, self.indices]
+        return torch.concat(res, dim=-1)[..., self.indices]
 
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]

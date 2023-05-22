@@ -113,6 +113,10 @@ class FullyConnected(NeuralNetwork):
             Output tensor
         """
         y_hat = x.clone()
+        
+        is1d = y_hat.ndim == 1
+        if is1d:
+            y_hat = y_hat.unsqueeze(0)
 
         for layer in self.layers:
             y_hat = layer(y_hat)
@@ -121,7 +125,9 @@ class FullyConnected(NeuralNetwork):
         y_hat = self.output_layer(y_hat)
 
         if not self.last_restrictable:
-            y_hat = y_hat[:, self.current_output_subset_indices]
+            y_hat = y_hat[..., self.current_output_subset_indices]
+        if is1d:
+            y_hat = y_hat.squeeze(0)
 
         return y_hat
 

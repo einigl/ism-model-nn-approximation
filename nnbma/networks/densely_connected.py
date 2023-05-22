@@ -118,15 +118,21 @@ class DenselyConnected(NeuralNetwork):
         """
         xk = x.clone()
 
+        is1d = xk.ndim == 1
+        if is1d:
+            xk = xk.unsqueeze(0)
+
         for layer in self.layers:
             yk = layer(xk)
             yk = self.activation(yk)
-            xk = concat((xk, yk), axis=1)
+            xk = concat((xk, yk), axis=-1)
 
         y_hat = self.output_layer(xk)
 
         if not self.last_restrictable:
-            y_hat = y_hat[:, self.current_output_subset_indices]
+            y_hat = y_hat[..., self.current_output_subset_indices]
+        if is1d:
+            y_hat = y_hat.squeeze(0)
 
         return y_hat
 

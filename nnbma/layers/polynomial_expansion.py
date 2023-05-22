@@ -70,14 +70,23 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
-        y = torch.column_stack((torch.ones(x.size(0), device=self.device), x))
+        is1d = x.ndim == 1
+        if is1d:
+            x = x.unsqueeze(0)
+        y = torch.cat((
+            torch.ones(x.shape[:-1], device=self.device).unsqueeze(-1),
+            x
+        ), dim=-1) # Add an input equal to 1
         m = y.clone()
         for _ in range(self.order - 1):
             y = y.unsqueeze(-1)
-            m = m.unsqueeze(1) * y
+            m = m.unsqueeze(x.ndim-1) * y
+        y = m[..., self._mask]
         if self.standardize:
-            return self._batch_norm(m[:, self._mask])
-        return m[:, self._mask]
+            y = self._batch_norm(y)
+        if is1d:
+            y = y.squeeze(0)
+        return y
 
     @staticmethod
     def _create_mask(order: int, n_features: int) -> torch.Tensor:
@@ -105,7 +114,6 @@ class PolynomialExpansion(nn.Module):
                 if coords[k + 1] < coords[k]:
                     mask[coords] = False
                     break
-
         return mask
 
     @staticmethod
