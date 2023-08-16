@@ -138,207 +138,6 @@ class NeuralNetwork(nn.Module, ABC):
 
         return y
 
-    def evaluate_and_gradient(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
-        n = x.shape[0]
-        _x = torch.from_numpy(x).float().to(self.device)
-        _x.requires_grad = True
-        J = torch.zeros(
-            (self.output_features, n, self.input_features),
-            device=self.device,
-        )
-        _out = self.forward(_x)
-        for k in range(self.output_features):
-            d1 = torch.autograd.grad(
-                _out[..., k],
-                _x,
-                grad_outputs=torch.ones_like(
-                    _out[:, k],
-                    device=self.device,
-                ),
-                create_graph=True,
-            )[0]
-            J[k, :, :] = d1.detach()
-
-        f = _out.detach().cpu().numpy().astype(np.float64)
-
-        grad = J.cpu().numpy().astype(np.float64)
-        grad = grad.transpose((1, 2, 0))
-
-        return f, grad
-
-    def gradient(self, x: np.ndarray) -> np.ndarray:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
-        _, out = self.evaluate_and_gradient(x)
-        return out
-
-    def evaluate_and_derivatives(
-        self,
-        x: np.ndarray,
-        max_order: int,
-        list_input_indices: Optional[List[int]] = None,
-    ) -> Tuple[np.ndarray, ...]:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
-        assert max_order in [1, 2]
-
-        if list_input_indices is not None:
-            for idx in list_input_indices:
-                assert 0 <= idx <= self.input_features
-            assert np.unique(list_input_indices).size == len(list_input_indices)
-        else:
-            list_input_indices = list(range(self.input_features))
-
-        n = x.shape[0]
-        if self.device == "cuda":
-            _x = torch.from_numpy(x).float().to(self.device)
-        else:
-            _x = torch.from_numpy(x).float()
-
-        _x.requires_grad = True
-
-        derivatives = [
-            torch.zeros(
-                (self.output_features, n, self.input_features),
-                device=self.device,
-            )
-            for _ in range(max_order)
-        ]
-
-        _out = self.forward(_x)
-
-        for k in range(self.output_features):
-            _d1 = torch.autograd.grad(
-                _out[:, k],
-                _x,
-                grad_outputs=torch.ones_like(
-                    _out[:, k],
-                    device=self.device,
-                ),
-                create_graph=True,
-            )[
-                0
-            ]  # (N, D)
-            derivatives[0][k, :, :] = _d1.detach()
-
-            # if max_order == 2:
-            #     for d in list_input_indices:
-            #         _d2 = torch.autograd.grad(
-            #             _d1[:, d],
-            #             _x,
-            #             grad_outputs=torch.ones_like(
-            #                 _d1[:, d],
-            #                 device=self.device,
-            #             ),
-            #             create_graph=True,
-            #             # allow_unused=True,
-            #         )[
-            #             0
-            #         ]  # (N, D)
-            #         # get all d^2 f_ell / (d x_d d x_i) for all i = 1, ..., 4
-
-            #         derivatives[1][k, :, d] = _d2[..., d].detach()
-            #         _x.grad = None
-
-        if self.device == "cuda":
-            out = _out.detach().cpu().numpy()
-        else:
-            out = _out.detach().numpy()
-        out = out.astype(np.float64)
-
-        for i in range(max_order):
-            if self.device == "cuda":
-                derivatives[i] = derivatives[i].cpu().numpy().astype(np.float64)
-            else:
-                derivatives[i] = derivatives[i].numpy().astype(np.float64)
-            derivatives[i] = derivatives[i].transpose((1, 2, 0))
-
-        return out, *derivatives
-
-    def partial_derivative(
-        self, x: np.ndarray, variables: Union[int, List[int]]
-    ) -> Tuple[np.ndarray, ...]:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
-        if isinstance(variables, int):
-            variables = [variables]
-        n = x.shape[0]
-        _x = torch.from_numpy(x).float().to(self.device)
-        _x.requires_grad = True
-
-        d = torch.zeros(
-            (n, self.output_features),
-            device=self.device,
-        )
-
-        _out = self.forward(_x)
-
-        for k in range(self.output_features):
-
-            _d = _out[:, k]
-            for i in variables:
-                _d = torch.autograd.grad(
-                    _d,
-                    _x,
-                    grad_outputs=torch.ones(n, device=self.device),
-                    create_graph=True,
-                )[0][:, i]
-
-            _x.grad = None
-
-            d[:, k] = _d.detach().flatten()
-
-        out = d.cpu().numpy()
-        out = out.astype(np.float64)
-
-        return out
-
     @overload
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         pass
@@ -609,7 +408,7 @@ class NeuralNetwork(nn.Module, ABC):
     def _recursive_save(
         module: nn.Module,
         path: str,
-    ) -> List[str]:
+    ) -> None:
         os.mkdir(path)
         template = os.path.join(path, '{}')
 
@@ -617,12 +416,15 @@ class NeuralNetwork(nn.Module, ABC):
         with open(template.format("init.pkl"), "wb") as f:
             pickle.dump((type(module), args), f)
 
-        keys = []
+        delegs = []
         for arg in args:
             obj = getattr(module, arg)
             if NeuralNetwork._needs_recursion(obj):
-                new_keys = NeuralNetwork._recursive_save(obj, os.path.join(path, arg))
-                keys.extend(new_keys)
+                print("need recursion:", arg)
+                NeuralNetwork._recursive_save(obj, os.path.join(path, arg))
+                print("delegs before:", delegs)
+                delegs.append(arg)
+                print("delegs after", delegs)
             else:
                 if NeuralNetwork._needs_json(obj):
                     with open(template.format(f"{arg}.json"), "w", encoding="utf-8") as f:
@@ -632,11 +434,11 @@ class NeuralNetwork(nn.Module, ABC):
                         pickle.dump(obj, f)
 
         sd = module.state_dict()
-        sd = OrderedDict([(key, val) for key, val in sd.items() if not key in keys])
+        sd = OrderedDict([(key, val) for key, val in sd.items() if not NeuralNetwork._is_delegated(key, delegs)])
+        print(sd.keys())
+        print(delegs)
 
         torch.save(sd, template.format('state_dict.pth'))
-
-        return keys
 
     @staticmethod
     def _needs_recursion(obj: object) -> bool:
@@ -650,6 +452,14 @@ class NeuralNetwork(nn.Module, ABC):
             return True
         if isinstance(obj, (list, tuple)):
             return all(NeuralNetwork._needs_json(v) for v in obj)
+        return False
+    
+    @staticmethod
+    def _is_delegated(key: str, delegs: List[str]) -> bool:
+        print(key, delegs)
+        for prefix in delegs:
+            if key.startswith(prefix):
+                return True
         return False
         
     @classmethod

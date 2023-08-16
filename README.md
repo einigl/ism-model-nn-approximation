@@ -22,7 +22,7 @@ If you do not have a Python environment compatible with the above dependencies, 
 
 ### Download
 
-You can download this code using the following command `$ git clone https://github.com/einigl/ism-model-nn-approximation.git`. Alternatively, you can also download a zip file.
+You can download this code using the following command `$ git clone git@github.com:einigl/ism-model-nn-approximation.git`. Alternatively, you can also download a zip file.
 
 ### Installing Dependencies on Windows
 

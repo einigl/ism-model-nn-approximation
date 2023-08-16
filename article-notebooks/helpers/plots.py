@@ -1,13 +1,16 @@
 import os
 import shutil
 from itertools import combinations
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
+from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.colorbar import Colorbar
 from matplotlib.colors import LogNorm
+from matplotlib.cm import ScalarMappable
+from matplotlib.ticker import MultipleLocator, FuncFormatter, FixedLocator, NullFormatter
 
 from nnbma.networks import NeuralNetwork
 
@@ -75,9 +78,9 @@ class Plotter:
 
         if df_mask is None:
             df_mask = pd.DataFrame(
-                0, index=df_outputs.index, columns=df_outputs.columns
+                1, index=df_outputs.index, columns=df_outputs.columns
             )
-        elif df_mask.mean().mean() > 0.5:
+        elif df_mask.mean().mean() < 0.5:
             df_mask = 1 - df_mask
 
         self._df = pd.concat([df_inputs, df_outputs], axis=1)
@@ -91,10 +94,10 @@ class Plotter:
             self._grid.update({param: values})
 
         inputs_names = ["P", "Avmax", "radm", "angle"]
-        inputs_latex = ["P", "Av^{tot}", "G_0", "\\alpha"]
+        inputs_latex = ["P", "A_v^{tot}", "G_0", "\\alpha"]
         inputs_units = ["K.cm$^{-3}$", "mag", "", "deg"]
         inputs_units_long = ["K.cm$^{-3}$", "mag", "Mathis units", "deg"]
-        inputs_scales = ["log", "log", "log", "lin"]
+        inputs_scales = ["log", "log", "log", "linear"]
 
         indices = []
         for param in inputs_names:
@@ -153,8 +156,8 @@ class Plotter:
     def closest_in_grid(
         self,
         P: Optional[float] = None,
-        radm: Optional[float] = None,
         Avmax: Optional[float] = None,
+        radm: Optional[float] = None,
         angle: Optional[float] = None,
     ) -> Dict[str, float]:
         res = {}
@@ -260,9 +263,12 @@ class Plotter:
 
             if errors:
                 err = 100 * (10 ** np.abs(y_grid[:, idx] - df[line].values) - 1)
+                # print(err) # TODO
+                # print(y_grid[:, idx])
+                # print(df[line].values)
                 lines = plt.plot(
-                    x_op(df.iloc[:, k_none].values[~m]),
-                    err[~m],
+                    x_op(df.iloc[:, k_none].values[m]),
+                    err[m],
                     linestyle="--",
                     marker="x",
                     markersize=10,
@@ -277,7 +283,7 @@ class Plotter:
                     color=lines[0].get_color(),
                 )
 
-                plt.ylabel("Errors factor (\%)", labelpad=15, fontsize=fontsize)
+                plt.ylabel("Error factor (\%)", labelpad=15, fontsize=fontsize)
 
             else:
                 lines = None
@@ -292,8 +298,8 @@ class Plotter:
                         label=None if regression else line_to_latex(line),
                     )
                     plt.scatter(
-                        x_op(df.iloc[:, k_none].values[m]),
-                        y_op(df[line].values[m]),
+                        x_op(df.iloc[:, k_none].values[~m]),
+                        y_op(df[line].values[~m]),
                         s=11**2,
                         marker="s",
                         color=lines[0].get_color(),
@@ -367,8 +373,8 @@ class Plotter:
         self,
         lines_to_plot: Union[List[str], str],
         P: Optional[float] = None,
-        radm: Optional[float] = None,
         Avmax: Optional[float] = None,
+        radm: Optional[float] = None,
         angle: Optional[float] = None,
         n_samples: int = 100,
         grid: Optional[bool] = None,
@@ -547,8 +553,8 @@ class Plotter:
                     errors=False,
                 )
                 plt.tick_params(
-                    axis="x", which="both", bottom=False, top=False, labelbottom=False
-                )
+                    axis="x", which="both", bottom=True, top=False, labelbottom=True
+                ) # TODO bottom=False, labelbottom=False
                 plt.xlabel(None)
 
                 plt.subplot(2, 1, 2)
@@ -624,6 +630,43 @@ class Plotter:
                 fig.savefig(os.path.join(dirname, n_blank))
                 plt.close(fig)
 
+    def _mimic_log_axes(
+        self,
+        ax: plt.Axes,
+        xscale: Literal["linear", "log"],
+        yscale: Literal["linear", "log"],
+    ):
+        ## Locators for Y-axis
+        # set tickmarks at multiples of 1.
+        majorLocator = MultipleLocator(1.)
+        lim = (
+            min(ax.get_xlim()[0], ax.get_ylim()[0]),
+            max(ax.get_xlim()[1], ax.get_ylim()[1])
+        )
+        ra = np.array(
+            [[n+(1.+np.log10(i)) for n in range(int(lim[0])-1, int(lim[1])+1)] for i in [2,3,4,5,6,7,8,9][::-1]]
+        ).flatten()
+        minorLocator = FixedLocator(ra)
+        # majorFormatter= FuncFormatter(
+        #     lambda x,p: "{:.1e}".format(10**x)
+        # ) 
+        majorFormatter= FuncFormatter(
+            lambda x,p: r"$10^{"+"{x:d}".format(x=int(x))+r"}$"
+        ) 
+
+        ax.minorticks_on()
+
+        if xscale == "log":
+            ax.xaxis.set_major_locator(majorLocator)
+            ax.xaxis.set_major_formatter(majorFormatter)
+            ax.xaxis.set_minor_locator(minorLocator)
+            ax.xaxis.set_minor_formatter(NullFormatter())
+        if yscale == "log":
+            ax.yaxis.set_major_locator(majorLocator)
+            ax.yaxis.set_major_formatter(majorFormatter)
+            ax.yaxis.set_minor_locator(minorLocator)
+            ax.yaxis.set_minor_formatter(NullFormatter())
+
     def _plot_slice(
         self,
         line_to_plot: str,
@@ -640,6 +683,7 @@ class Plotter:
         errors: bool,
         highlighted_1: List[Tuple[float, bool]],
         highlighted_2: List[Tuple[float, bool]],
+        contour: bool,
         legend: bool,
         fontsize: int,
         pointsize: int,
@@ -655,7 +699,7 @@ class Plotter:
                 f"One argument among 'grid', 'regression' and 'errors' must be True"
             )
 
-        # Plot profiles
+        # Plot slices
         x_op = lambda t: t
         y_op = lambda t: 10**t
 
@@ -664,19 +708,19 @@ class Plotter:
         if errors:
             err = 100 * (10 ** np.abs(y_grid[:, 0] - df[line_to_plot].values) - 1)
             im = plt.scatter(
-                x_op(df.iloc[:, k_none_1].values[~m]),
-                x_op(df.iloc[:, k_none_2].values[~m]),
-                c=err[~m],
+                x_op(df.iloc[:, k_none_1].values[m]),
+                x_op(df.iloc[:, k_none_2].values[m]),
+                c=err[m],
                 s=pointsize,
                 label=line_to_latex(line_to_plot),
             )
 
             cbar = plt.colorbar(im)
             cbar.ax.set_ylabel(
-                "Errors factor (\%)", rotation=-90, fontsize=fontsize, labelpad=20
+                "Error factor (\%)", rotation=-90, fontsize=fontsize, labelpad=20
             )
 
-            vmin, vmax = err[~m & (err > 0)].min(), err[~m & (err > 0)].max()
+            vmin, vmax = err[m & (err > 0)].min(), err[m & (err > 0)].max()
 
         elif grid or regression:
 
@@ -689,9 +733,9 @@ class Plotter:
                 norm = LogNorm(vmin, vmax)
 
                 plt.scatter(
-                    x_op(df.iloc[:, k_none_1].values[m]),
-                    x_op(df.iloc[:, k_none_2].values[m]),
-                    c=_y[m],
+                    x_op(df.iloc[:, k_none_1].values[~m]),
+                    x_op(df.iloc[:, k_none_2].values[~m]),
+                    c=_y[~m],
                     marker="s",
                     norm=norm,
                     s=pointsize,
@@ -699,9 +743,9 @@ class Plotter:
                 )
 
                 im = plt.scatter(
-                    x_op(df.iloc[:, k_none_1]),
-                    x_op(df.iloc[:, k_none_2]),
-                    c=_y,
+                    x_op(df.iloc[:, k_none_1].values[m]),
+                    x_op(df.iloc[:, k_none_2].values[m]),
+                    c=_y[m],
                     label=line_to_latex(line_to_plot),
                     norm=norm,
                     s=pointsize,
@@ -714,19 +758,44 @@ class Plotter:
                 x2 = X[:, k_none_2].reshape(n_samples, n_samples)
                 _y = y_op(y[:, 0]).reshape(n_samples, n_samples)
                 norm = LogNorm(vmin=_y.min(), vmax=_y.max())
-                im = plt.pcolor(
-                    x1,
-                    x2,
-                    _y,
-                    norm=norm,
-                    cmap=cmap,
-                )
+
+                if contour:
+                    Z = np.log10(_y)
+                    max_levels = 20 # Can be modified
+                    resolution = 1 # decimal digit
+                    _min = np.min(np.around(Z, resolution))
+                    _max = np.max(np.around(Z, resolution))
+                    n_levels = int((_max - _min) * 10**resolution)
+                    levels = _min + 10**(-resolution) * np.arange(n_levels)
+                    levels = levels[::int(np.ceil(n_levels / max_levels))]
+                    cs = plt.contour(
+                        np.log10(x1),
+                        np.log10(x2),
+                        Z,
+                        levels=levels,
+                        cmap=cmap,
+                        extent=[x1.min(), x1.max(), x2.min(), x2.max()]
+                    )
+                    plt.clabel(cs, cs.levels, fmt=lambda x: f"{x:.1f}", fontsize=8)
+
+                else:
+                    im = plt.pcolor(
+                        x1,
+                        x2,
+                        _y,
+                        norm=norm,
+                        cmap=cmap,
+                    )
 
                 plt.scatter([], [], label=line_to_latex(line_to_plot))
 
-            cbar = plt.colorbar(im)
+            if contour:
+                cbar = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap))
+            else:
+                cbar = plt.colorbar(im)
             cbar.ax.set_ylabel(
-                "Integrated intensities",  # (erg.cm$^{-2}$.s$^{-1}$.sr$^{-1}$)",
+                "Integrated intensities",
+                # "Integrated intensities\n(erg cm$^{-2}$ s$^{-1}$ sr$^{-1}$)",
                 rotation=-90,
                 fontsize=fontsize,
                 labelpad=20,
@@ -748,7 +817,7 @@ class Plotter:
         h2 = [df_mask[param_none_2].values[idx] for idx in _idx]
         m = [df_mask[line_to_plot].values[idx] for idx in _idx]
 
-        if grid:
+        if grid or errors:
             _h1 = np.array([_h for _h, _m in zip(h1, m) if _m == 1])
             _h2 = np.array([_h for _h, _m in zip(h2, m) if _m == 1])
             plt.scatter(
@@ -778,31 +847,20 @@ class Plotter:
                 marker="x",
             )
         else:
-            _h1 = np.array([_h for _h, _m in zip(h1, m) if _m == 1])
-            _h2 = np.array([_h for _h, _m in zip(h2, m) if _m == 1])
-            plt.scatter(
-                x_op(np.array(_h1)),
-                x_op(np.array(_h2)),
-                c="red",
-                marker="x",
-            )
-            _h1 = np.array([_h for _h, _m in zip(h1, m) if _m == 0])
-            _h2 = np.array([_h for _h, _m in zip(h2, m) if _m == 0])
-            plt.scatter(
-                x_op(np.array(_h1)),
-                x_op(np.array(_h2)),
-                facecolors="None",
-                edgecolors="red",
-                s=round(5*pointsize),
-                linewidth=1,
-                vmin=vmin,
-                vmax=vmax,
-            )
+            raise ValueError("Should never have been here")
 
-        if self._inputs_scales[k_none_1] == "log":
-            plt.xscale("log")
-        if self._inputs_scales[k_none_2] == "log":
-            plt.yscale("log")
+        if not regression or not contour:
+            if self._inputs_scales[k_none_1] == "log":
+                plt.xscale("log")
+            if self._inputs_scales[k_none_2] == "log":
+                plt.yscale("log")
+        else:
+            self._mimic_log_axes(
+                plt.gca(),
+                self._inputs_scales[k_none_1],
+                self._inputs_scales[k_none_2]
+            )
+            pass
 
         plt.xlabel(
             f"${self._inputs_latex[k_none_1]}$ ({self._inputs_units_long[k_none_1]})".replace(
@@ -841,15 +899,16 @@ class Plotter:
     def plot_slice(
         self,
         line_to_plot: str,
-        P: Optional[float] = None,
-        radm: Optional[float] = None,
-        Avmax: Optional[float] = None,
-        angle: Optional[float] = None,
+        P: Union[float, Literal["x", "y"], None] = None,
+        Avmax: Union[float, Literal["x", "y"], None] = None,
+        radm: Union[float, Literal["x", "y"], None] = None,
+        angle: Union[float, Literal["x", "y"], None] = None,
         n_samples: int = 100,
         grid: Optional[bool] = None,
         regression: Optional[bool] = None,
         errors: bool = False,
-        highlighted: Optional[List[float]] = None,
+        highlighted: List[dict] = [],
+        contour: bool = False,
         legend: bool = True,
         latex: bool = True,
         fontsize: int = 10,
@@ -887,27 +946,33 @@ class Plotter:
             else:
                 regression = True
 
-        if isinstance(highlighted, dict):
+        if highlighted is None:
+            highlighted = []
+        elif isinstance(highlighted, dict):
             highlighted = [highlighted]
-        if not isinstance(highlighted, list):
+        elif not isinstance(highlighted, list):
             raise TypeError(f"highlighted must be a list, not {type(highlighted)}")
         if any([not isinstance(el, dict) for el in highlighted]):
             raise ValueError(f"highlighted elements must be dict")
         if any([len(el) != 2 for el in highlighted]):
             raise ValueError(f"highlighted elements must be dict of length 2")
 
-        # DataFrames
-        # df = pd.concat([self._df_inputs, self._df_outputs], axis=1)
-        # df_mask = pd.concat([self._df_inputs, self._df_mask], axis=1)
+        if len(highlighted) > 0 and contour:
+            warn("highlighted option is not available when contour is True")
+            highlighted = []
 
-        ks_none = []
+        ks_none = [None, None]
         for k in range(self.n_inputs):
             value = locals()[self.inputs_names[k]]
             if value is None:
-                ks_none.append(k)
+                ks_none[0 if ks_none[0] is None else 1] = k
+            elif value == "x":
+                ks_none[0] = k
+            elif value == "y":
+                ks_none[1] = k
 
-        if len(ks_none) != 2:
-            raise ValueError("The number of None inputs is different from 2.")
+        if ks_none[0] is None or ks_none[1] is None:
+            raise ValueError("The number of free inputs is different from 2.")
         k_none_1, k_none_2 = ks_none
         param_none_1, param_none_2 = (
             self._inputs_names[k_none_1],
@@ -920,7 +985,7 @@ class Plotter:
         list_closest_filter = []
         for param in self.inputs_names:
             value = locals()[param]
-            if value is not None:
+            if value not in [None, "x", "y"]:
                 closest = self.closest_in_grid(**{param: value})[param]
                 values.append(closest)
                 list_params_filter.append(param)
@@ -978,21 +1043,23 @@ class Plotter:
             self._model.restrict_to_output_subset(
                 [line_to_plot]
             )  # Restrict only to line we want
-            y = (
-                self._model.evaluate(X, transform_inputs=True, transform_outputs=True)
-                if regression
-                else None
-            )
-            y_grid = (
-                self._model.evaluate(
-                    X_grid, transform_inputs=True, transform_outputs=True
+            if regression:
+                y = (
+                    self._model.evaluate(X, transform_inputs=True, transform_outputs=True)
+                    if regression
+                    else None
                 )
-                if regression
-                else None
-            )
-            self._model.restrict_to_output_subset(
-                previous_output_subset
-            )  # Restore the previous restriction
+            if errors:
+                y_grid = (
+                    self._model.evaluate(
+                        X_grid, transform_inputs=True, transform_outputs=True
+                    )
+                    if regression
+                    else None
+                )
+                self._model.restrict_to_output_subset(
+                    previous_output_subset
+                )  # Restore the previous restriction
 
         # Highlighted values
         highlighted_1 = [
@@ -1017,6 +1084,7 @@ class Plotter:
             "k_none_2": k_none_2,
             "highlighted_1": highlighted_1,
             "highlighted_2": highlighted_2,
+            "contour": contour,
             "legend": legend,
             "fontsize": fontsize,
             "pointsize": pointsize,
@@ -1108,6 +1176,7 @@ class Plotter:
         grid: Optional[bool] = None,
         regression: Optional[bool] = None,
         errors: bool = False,
+        contour: bool = False,
         legend: bool = True,
         latex: bool = True,
         dpi: int = 150,
@@ -1158,6 +1227,7 @@ class Plotter:
                     highlighted=[{n_blank_1: row[n_blank_1], n_blank_2: row[n_blank_2]}]
                     if len(names_blank) > 1
                     else [],
+                    contour=contour,
                     legend=legend,
                     latex=latex,
                 )
