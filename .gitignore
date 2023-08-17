@@ -1,6 +1,6 @@
 */settings.json
 
-meudon-pdr/data/*
+meudon-pdr/*
 !meudon-pdr/data/README.md
 
 article-notebooks/out-*
