@@ -420,11 +420,8 @@ class NeuralNetwork(nn.Module, ABC):
         for arg in args:
             obj = getattr(module, arg)
             if NeuralNetwork._needs_recursion(obj):
-                print("need recursion:", arg)
                 NeuralNetwork._recursive_save(obj, os.path.join(path, arg))
-                print("delegs before:", delegs)
                 delegs.append(arg)
-                print("delegs after", delegs)
             else:
                 if NeuralNetwork._needs_json(obj):
                     with open(template.format(f"{arg}.json"), "w", encoding="utf-8") as f:
@@ -435,8 +432,6 @@ class NeuralNetwork(nn.Module, ABC):
 
         sd = module.state_dict()
         sd = OrderedDict([(key, val) for key, val in sd.items() if not NeuralNetwork._is_delegated(key, delegs)])
-        print(sd.keys())
-        print(delegs)
 
         torch.save(sd, template.format('state_dict.pth'))
 
