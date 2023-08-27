@@ -1,3 +1,7 @@
+"""
+Implements helpers to process spectral lines formatted according to Meudon PDR code standards.
+"""
+
 import re
 from typing import List, Tuple, Union
 from warnings import warn
@@ -6,6 +10,7 @@ __all__ = [
     "molecule_and_transition",
     "molecule",
     "transition",
+    "is_line_of",
     "filter_molecules",
     "molecules_among_lines",
     "molecule_to_latex",
@@ -58,12 +63,31 @@ _molecules_aliases = {
 
 # Energy to LaTeX
 _energy_to_latex = {
-    "j": "J",
-    "v": "\\nu",
-    "f": "f",
-    "n": "n",
-    "ka": "k_a",
-    "kc": "k_c",
+    "j": "J={}",
+    "v": "\\nu={}",
+    "f": "F={}",
+    "n": "n={}",
+    "ka": "k_a={}",
+    "kc": "k_c={}",
+    "fif": "F_i=F_{}",
+}
+
+# Electronic state to LaTeX
+_elstate_to_latex = {
+    "s": "{}s",
+    "p": "{}p",
+    "d": "{}d",
+    "f": "{}f",
+    "so": "{}S_o",
+    "po": "{}P_o",
+    "do": "{}D_o",
+    "fo": "{}F_o",
+}
+
+# Literal to LaTeX
+_literal_to_latex = {
+    "pp": "p=+",
+    "pm": "p=-"
 }
 
 
@@ -152,6 +176,25 @@ def molecules_among_lines(names: List[str]) -> List[str]:
     """
     return list(dict.fromkeys([molecule_and_transition(name)[0] for name in names]))
 
+def is_line_of(name: str, mol: str) -> bool:
+    """
+    Returns True if `name` is a line of the chemical species `mol`, else False.
+
+    Parameters
+    ----------
+    name: str
+        Formatted line.
+    mol: str
+        Molecule.
+    
+    Returns
+    -------
+    bool
+        Whether `name` is a line of `mol`.
+    """
+    mol = mol.strip().lower()
+    return molecule(name) == mol
+
 def filter_molecules(
     names: List[str], mols: Union[str, List[str], None]
 ) -> List[str]:
@@ -189,9 +232,6 @@ def molecule_to_latex(molecule: str) -> str:
     """
     Returns a well displayed version of the formatted molecule or radical `molecule`.
 
-    Not addressed formats :
-    * '(pp|pm)_fif\d*'
-
     Parameters
     ----------
     molecule : str
@@ -203,7 +243,7 @@ def molecule_to_latex(molecule: str) -> str:
         LaTeX string representing `molecule`.
     """
     if molecule in _molecules_to_latex:
-        latex_molecule = "${}$".format(_molecules_to_latex[molecule])
+        latex_molecule = "$\\mathrm{{{}}}$".format(_molecules_to_latex[molecule])
     else:
         latex_molecule = molecule
 
@@ -212,9 +252,6 @@ def molecule_to_latex(molecule: str) -> str:
 def transition_to_latex(transition: str) -> str:
     """
     Returns a well displayed version of the formatted transition `transition`.
-
-    Not addressed formats :
-    * '(pp|pm)_fif\d*'
 
     Parameters
     ----------
@@ -234,95 +271,58 @@ def transition_to_latex(transition: str) -> str:
     high_lvls, low_lvls = [], []
     while high != "" and low != "":
 
-        res_high = re.match("\A(j|v|n|f|ka|kc)\d*_2", high)
-        res_low = re.match("\A(j|v|n|f|ka|kc)\d*_2", low)
+        # Match energy levels
+        res_high = re.match("\A(fif|j|v|n|f|ka|kc)(\d*_\d\d*|\d*d\d*|\d*)", high)
+        res_low = re.match("\A(fif|j|v|n|f|ka|kc)(\d*_\d\d*|\d*d\d*|\d*)", low)
         if res_high is not None and res_low is not None:
             e_high, e_low = high[:res_high.end()], low[:res_low.end()]
-            n_high = re.match("\A(j|v|n|f|ka|kc)", e_high).group()
-            n_low = re.match("\A(j|v|n|f|ka|kc)", e_low).group()
+            n_high = re.match("\A(fif|j|v|n|f|ka|kc)", e_high).group()
+            n_low = re.match("\A(fif|j|v|n|f|ka|kc)", e_low).group()
             if n_high != n_low:
-                raise ValueError("{transition} is not a valid transition because the energy level are not in the same order in the description of the high and low levels")
+                raise ValueError("{transition} is not a valid transition because the energy levels are not in the same order in the description of the high and low levels")
             names.append(n_high)
-            high_lvls.append(e_high.removeprefix(n_high).replace('_', '/'))
-            low_lvls.append(e_low.removeprefix(n_low).replace('_', '/'))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
+            high_lvls.append(_removeprefixes(e_high, n_high)\
+                .replace('_', '/').replace('d', '.')
+            )
+            low_lvls.append(_removeprefixes(e_low, n_low)\
+                .replace('_', '/').replace('d', '.')
+            )
+            high = _removeprefixes(high, e_high, '_')
+            low = _removeprefixes(low, e_low, '_')
             continue
 
-        res_high = re.match("\A(j|v|n|f|ka|kc)\d*d\d*", high)
-        res_low = re.match("\A(j|v|n|f|ka|kc)\d*d\d*", low)
-        if res_high is not None and res_low is not None:
-            e_high, e_low = high[:res_high.end()], low[:res_low.end()]
-            n_high = re.match("\A(j|v|n|f|ka|kc)", e_high).group()
-            n_low = re.match("\A(j|v|n|f|ka|kc)", e_low).group()
-            if n_high != n_low:
-                raise ValueError("{transition} is not a valid transition because the energy level are not in the same order in the description of the high and low levels")
-            names.append(n_high)
-            high_lvls.append(e_high.removeprefix(n_high).replace('d', '.'))
-            low_lvls.append(e_low.removeprefix(n_low).replace('d', '.'))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
-            continue
-
-        res_high = re.match("\A(j|v|n|f|ka|kc)\d*", high)
-        res_low = re.match("\A(j|v|n|f|ka|kc)\d*", low)
-        if res_high is not None and res_low is not None:
-            e_high, e_low = high[:res_high.end()], low[:res_low.end()]
-            n_high = re.match("\A(j|v|n|f|ka|kc)", e_high).group()
-            n_low = re.match("\A(j|v|n|f|ka|kc)", e_low).group()
-            if n_high != n_low:
-                raise ValueError("{transition} is not a valid transition because the energy level are not in the same order in the description of the high and low levels")
-            names.append(n_high)
-            high_lvls.append(e_high.removeprefix(n_high))
-            low_lvls.append(e_low.removeprefix(n_low))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
-            continue
-
-        res_high = re.match("\Ael\d*(po|so|do)", high)
-        res_low = re.match("\Ael\d*(po|so|do)", low)
+        # Match electronic state
+        res_high = re.match("\Ael\d*(po|so|do|p|s|d)", high)
+        res_low = re.match("\Ael\d*(po|so|do|p|s|d)", low)
         if res_high is not None and res_low is not None:
             e_high, e_low = high[:res_high.end()], low[:res_low.end()]
             names.append("el")
-            high_lvls.append(e_high.removeprefix("el"))
-            low_lvls.append(e_low.removeprefix("el"))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
+            high_lvls.append(_removeprefixes(e_high, "el"))
+            low_lvls.append(_removeprefixes(e_low, "el"))
+            high = _removeprefixes(high, e_high, '_')
+            low = _removeprefixes(low, e_low, '_')
             continue
 
-        res_high = re.match("\Ael\d*(p|s|d)", high)
-        res_low = re.match("\Ael\d*(p|s|d)", low)
+        # Match literals
+        res_high = re.match("\A(pp|pm)", high)
+        res_low = re.match("\A(pp|pm)", low)
         if res_high is not None and res_low is not None:
             e_high, e_low = high[:res_high.end()], low[:res_low.end()]
-            names.append("el")
-            high_lvls.append(e_high.removeprefix("el"))
-            low_lvls.append(e_low.removeprefix("el"))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
-            continue
-
-        res_high = re.match("\A(pp|pm)_fif\d*", high)
-        res_low = re.match("\A(pp|pm)_fif\d*", low)
-        if res_high is not None and res_low is not None:
-            e_high, e_low = high[:res_high.end()], low[:res_low.end()]
-            # names.append("el")
-            # high_lvls.append(e_high.removeprefix("el"))
-            # low_lvls.append(e_low.removeprefix("el"))
-            high = high.removeprefix(e_high).removeprefix('_')
-            low = low.removeprefix(e_low).removeprefix('_')
+            names.append("lit")
+            high_lvls.append(e_high)
+            low_lvls.append(e_low)
+            high = _removeprefixes(high, e_high, '_')
+            low = _removeprefixes(low, e_low, '_')
             continue
 
         if high == "" and low != "" or high != "" and low == "":
             raise RuntimeError("high and low levels does not contain the same number of variables")
-
+        
     return _sort_transitions(names, high_lvls, low_lvls)
 
 def line_to_latex(line_name: str) -> str:
     """
     Returns a well displayed version of the formatted line `line_name`.
-
-    Not addressed formats :
-    * '(pp|pm)_fif\d*'
 
     Parameters
     ----------
@@ -350,9 +350,64 @@ def line_to_latex(line_name: str) -> str:
 
 # Local functions
 
+def _removeprefixes(string: str, *prefixes: str) -> str:
+    """
+    Return a str with the given prefix string removed if present.
+
+    Return a copy of `string` with the prefixes `prefixes` removed iteratively if they exists.
+
+    Note
+    ----
+
+    This method doesn't use the builtin method `removeprefix` to ensure the code to be available to users with `Python < 3.9`.
+    """
+    for prefix in prefixes:
+        if string.startswith(prefix):
+            string = string[len(prefix):]
+    return string[:]
+
+def _numerical_to_latex(num: str) -> str:
+    """
+    Returns a LaTeX string representing a numerical value `num`. This value can be formatted in several ways: `'a'`, `'a/b'` or `'a.b'` where a and b are integers, potentially over several digits.
+
+    Parameters
+    ----------
+    num : str
+        Formatted number.
+
+    Returns
+    -------
+    str
+        LaTeX representation of the number.
+    """
+
+    if re.match("\A\d*[/.]\d*\Z", num) is None:
+        return num
+
+    if '/' in num:
+        a, b = num.split('/')
+        n, d = int(a), int(b)
+    else:
+        a, b = num.split('.')
+
+        if b == "0": 
+            n, d = int(a), 1
+        elif b == "5":
+            n, d = 2*int(a)+1, 2
+        else:
+            warn(f"x.{b} floats has not been implemented. Ignoring the floating part.")
+            n, d = int(a), 1 # Default behavior
+
+    if n % d == 0:
+        num_latex = f"{n // d}"
+    else:
+        num_latex = r"\frac{" + str(n) + r"}{" + str(d) + r"}"
+
+    return num_latex
+
 def _transition(
     name: str, high_lvl: str, low_lvl: str
-) -> Tuple[Union[str, Tuple[str, str]], bool]:
+) -> Tuple[str, str]:
     """
     Returns a LaTeX string representing a non electronic transition.
 
@@ -367,62 +422,25 @@ def _transition(
 
     Returns
     -------
-    str or tuple of str
-        If it is a transition: higher energy level and lower energy level. Else: energy level.
-    bool
-        True if it is a transition, else False
+    str
+        Higher energy level formatted in LaTeX.
+    str
+        Lower energy level formatted in LaTeX. May be the same as the higher level.
     """
     if name in _energy_to_latex:
         name_latex = _energy_to_latex[name]
     else:
-        name_latex = name
+        name_latex = name + "={}" # Default behavior for unknown name
 
-    if re.match("\A\d*[/.]\d*\Z", high_lvl) is not None:
-        if '/' in high_lvl:
-            a_high, b_high = high_lvl.split('/')
-            a_low, b_low = low_lvl.split('/')
+    high_lvl_latex = _numerical_to_latex(high_lvl)
+    low_lvl_latex = _numerical_to_latex(low_lvl)
 
-            n_high, d_high = int(a_high), int(b_high)
-            n_low, d_low = int(a_low), int(b_low)
-        else:
-            a_high, b_high = high_lvl.split('.')
-            a_low, b_low = low_lvl.split('.')
-
-            if b_high == "0": 
-                n_high, d_high = 2*int(a_high), 1
-            elif b_high == "5":
-                n_high, d_high = 2*int(a_high)+1, 2
-            else:
-                warn(f"x.{b_high} floats has not been implemented. Ignoring the floating part.")
-                n_high, d_high = int(a_high), 1 # Default behavior
-            if b_low == "0": 
-                n_low, d_low = 2*int(a_low), 1
-            elif b_low == "5":
-                n_low, d_low = 2*int(a_low)+1, 2
-            else:
-                warn(f"x.{b_low} floats has not been implemented. Ignoring the floating part.")
-                n_low, d_low = int(a_low), 1 # Default behavior
-
-        if n_high % d_high == 0:
-            high_lvl_latex = f"{n_high // d_high}"
-        else:
-            high_lvl_latex = r"\frac{" + str(n_high) + r"}{" + str(d_high) + r"}"
-        if n_low % d_low == 0:
-            low_lvl_latex = f"{n_low // d_low}"
-        else:
-            low_lvl_latex = r"\frac{" + str(n_low) + r"}{" + str(d_low) + r"}"
-    else:
-        high_lvl_latex = high_lvl
-        low_lvl_latex = low_lvl
-
-    if high_lvl_latex == low_lvl_latex:
-        return "${}={}$".format(name_latex, low_lvl_latex), False
     return (
-        "${}={}$".format(name_latex, high_lvl_latex),
-        "${}={}$".format(name_latex, low_lvl_latex),
-    ), True
+        "$" + name_latex.format(high_lvl_latex) + "$",
+        "$" + name_latex.format(low_lvl_latex) + "$"
+    )
 
-def _eltransition(high: str, low: str) -> Tuple[Union[str, Tuple[str, str]], bool]:
+def _eltransition(high: str, low: str) -> Tuple[str, str]:
     """
     Returns a LaTeX string representing an electronic transition.
 
@@ -435,15 +453,40 @@ def _eltransition(high: str, low: str) -> Tuple[Union[str, Tuple[str, str]], boo
 
     Returns
     -------
-    str or tuple of str
-        If it is a transition: higher energy electronic configuration and lower energy configuration. Else: energy electronic configuration.
-    bool
-        True if it is a transition, else False
+    str
+        Higher energy electronic configuration formatted in LaTeX.
+    str
+        Lower energy electronic configuration formatted in LaTeX. May be the same as the higher configuration.
     """
-    if high == low:
-        return "${}$".format(high), False
-    return ("${}$".format(high), "${}$".format(low)), True
+    num_high, orb_high = high[0], high[1:]
+    num_low, orb_low = low[0], low[1:]
+    return (
+        "$" + (_elstate_to_latex[orb_high].format(num_high) if orb_high in _elstate_to_latex else high) + "$",
+        "$" + (_elstate_to_latex[orb_low].format(num_low) if orb_low in _elstate_to_latex else low) + "$",
+    )
 
+def _littransition(high: str, low: str) -> Tuple[str, str]:
+    """
+    Returns a LaTeX string representing whatever transition.
+
+    Parameters
+    ----------
+    high : str
+        Higher configuration.
+    low : str
+        Lower configuration. Can be the same as `high`.
+
+    Returns
+    -------
+    str
+        Higher configuration formatted in LaTeX.
+    str
+        Lower configuration formatted in LaTeX.
+    """
+    return (
+        "${}$".format(_literal_to_latex[high] if high in _literal_to_latex else high),
+        "${}$".format(_literal_to_latex[low] if low in _literal_to_latex else low)
+    )
 
 def _sort_transitions(
     names: List[str], high_lvls: List[int], low_lvls: List[int]
@@ -471,97 +514,16 @@ def _sort_transitions(
 
     if len(names) == 0:
         return ""
-    # if len(names) == 1:
-    #     return _transition(None, high_lvls[0], low_lvls[0])
 
-    descr_0, descr_1a, descr_1b = "", "", ""
+    descr_a, descr_b = "", ""
     for name, high, low in zip(names, high_lvls, low_lvls):
-        if name == "el":
-            descr, istrans = _eltransition(high, low)
+        if name == "lit":
+            descr = _littransition(high, low)
+        elif name == "el":
+            descr = _eltransition(high, low)
         else:
-            descr, istrans = _transition(name, high, low)
-        if istrans:
-            descr_1a += descr[0] + ", "
-            descr_1b += descr[1] + ", "
-        else:
-            descr_0 += descr + " "
-    return "{} ({} $\\to$ {})"\
-        .format(descr_0.strip(), descr_1a[:-2], descr_1b[:-2])
+            descr = _transition(name, high, low)
+        descr_a += descr[0] + ", "
+        descr_b += descr[1] + ", "
 
-# def _transition_to_latex(transition: str) -> str:
-#     """
-#     TODO
-#     """
-#     if re.match("\Aj\d*__j\d*\Z", transition):
-#         # ??__j{}__j{}
-#         res = re.search("\Aj(.*?)__j(.*?)\Z", transition)
-#         if res:
-#             # latex_transition = "$({} \\to {})$".format(*res.group(1, 2))
-#             latex_transition = "$(J={} \\to J={})$".format(*res.group(1, 2))
-#         else:
-#             raise ValueError("Should never been here")
-#     elif re.match("\Av\d*_j\d*__v\d*_j\d*\Z", transition):
-#         # ??_v{}_j{}__v{}_j{}
-#         res = re.search("\Av(.*?)_j(.*?)__v(.*?)_j(.*?)\Z", transition)
-#         if res:
-#             names = ["v", "j"]
-#             high_lvls, low_lvls = res.group(1, 2), res.group(3, 4)
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#         else:
-#             raise ValueError("Should never been here")
-#     elif re.match("\An\d*_j\d*__n\d*_j\d*\Z", transition):
-#         # ??_n{}_j{}__n{}_j{}
-#         res = re.search("\An(.*?)_j(.*?)__n(.*?)_j(.*?)\Z", transition)
-#         if res:
-#             names = ["n", "j"]
-#             high_lvls, low_lvls = res.group(1, 2), res.group(3, 4)
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#         else:
-#             raise ValueError("Should never been here")
-#     elif re.match("\Aj\d*_f\d*__j\d*_f\d*\Z", transition):
-#         # ??_j{}_f{}__j{}_f{}
-#         res = re.search("\Aj(.*?)_f(.*?)__j(.*?)_f(.*?)\Z", transition)
-#         if res:
-#             names = ["j", "f"]
-#             high_lvls, low_lvls = res.group(1, 2), res.group(3, 4)
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#         else:
-#             raise ValueError("Should never been here")
-#     elif re.match("\Aj\d*_ka\d*_kc\d*__j\d*_ka\d*_kc\d*\Z", transition):
-#         # ??_j{}_ka{}_kc{}__j{}_ka{}_kc{}
-#         res = re.search("\Aj(.*?)_ka(.*?)_kc(.*?)__j(.*?)_ka(.*?)_kc(.*?)\Z", transition)
-#         if res:
-#             names = ["j", "ka", "kc"]
-#             high_lvls, low_lvls = res.group(1, 2, 3), res.group(4, 5, 6)
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#         else:
-#             raise ValueError("Should never been here")
-#     elif re.match("\Ael\d*\w_j\d*__el\d*\w_j\d*\Z", transition):
-#         # ??_el{int+char}_j{int}__el{int+char}_j{int}
-#         res = re.search("\Ael(.*?)_j(.*?)__el(.*?)_j(.*?)\Z", transition)
-#         if res:
-#             names = ["el", "j"]
-#             high_lvls, low_lvls = res.group(1, 2), res.group(3, 4)
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#     elif re.match("\Ael\d*\w_j\d*_2__el\d*\w_j\d*_2\Z", transition):
-#         # ??_el{int+char}_j{int}_2__el{int+char}_j{int}_2
-#         res = re.search("\Ael(.*?)_j(.*?)_2__el(.*?)_j(.*?)_2\Z", transition)
-#         if res:
-#             names = ["el", "j"]
-#             high_lvls = res.group(1), r"\frac{" + f"{res.group(2)}" + r"}{2}"
-#             low_lvls = res.group(3), r"\frac{" + f"{res.group(4)}" + r"}{2}"
-#             latex_transition = _sort_transitions(names, high_lvls, low_lvls)
-#     else:
-#         # Not adressed formats
-
-#         # oh_j5_2_pp_fif2__j3_2_pm_fif2
-
-#         # c2h_n1d0_j1d5_f1d0__n0d0_j0d5_f1d0
-
-#         # cn_n1_j0d5__n0_j0d5
-#         # ohp_n1_j0_f0d5__n0_j1_f0d5
-#         # shp_n1_j0_f0d5__n0_j1_f0d5
-
-#         latex_transition = transition
-
-#     return latex_transition
+    return "({} $\\to$ {})".format(descr_a[:-2], descr_b[:-2])

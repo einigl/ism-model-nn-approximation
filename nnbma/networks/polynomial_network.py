@@ -26,6 +26,7 @@ class PolynomialNetwork(NeuralNetwork):
         input_features: int,
         order: int,
         subnetwork: NeuralNetwork,
+        # standardize: bool = True,
         inputs_names: Optional[Sequence[str]] = None,
         outputs_names: Optional[Sequence[str]] = None,
         inputs_transformer: Optional[Operator] = None,
@@ -60,8 +61,14 @@ class PolynomialNetwork(NeuralNetwork):
                 f"The number of polynomial features ({self.n_poly_features}) does not match the input layer of the subnetwork ({subnetwork.input_features[0]})."
             )
 
-        self.poly = PolynomialExpansion(input_features, order, self.device)
+        # self.poly = PolynomialExpansion(
+        #     input_features, order, standardize, self.device
+        # )
+        self.poly = PolynomialExpansion(
+            input_features, order, self.device
+        )
         self.subnetwork = subnetwork
+        # self.standardize = standardize
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -69,7 +76,7 @@ class PolynomialNetwork(NeuralNetwork):
 
         Parameters
         ----------
-        x : torch.Tensor)
+        x : torch.Tensor
             Input tensor
 
         Returns
@@ -81,11 +88,11 @@ class PolynomialNetwork(NeuralNetwork):
         y_hat = self.subnetwork(y_hat)
         return y_hat
     
-    # def update_standardization(self, x: Union[Tensor, ndarray]) -> None:
-    #     """
-    #     Computes the mean and the standard deviation of the output of the polynomial expansion such that the expanded inputs are standardized.
-    #     """
-    #     self.poly.update_standardization(x) TODO
+    def update_standardization(self, x: Union[Tensor, ndarray]) -> None:
+        """
+        Computes the mean and the standard deviation of the output of the polynomial expansion such that the expanded inputs are standardized.
+        """
+        self.poly.update_standardization(x)
 
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]

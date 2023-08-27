@@ -21,7 +21,6 @@ class PolynomialExpansion(nn.Module):
 
     n_features: int
     order: int
-    standardize: bool
     device: str
     n_expanded_features: int
 
@@ -29,7 +28,6 @@ class PolynomialExpansion(nn.Module):
         self,
         n_features: int,
         order: int,
-        standardize: bool=True,
         device: str='cpu',
     ):
         """
@@ -44,7 +42,6 @@ class PolynomialExpansion(nn.Module):
 
         self.n_features = n_features
         self.order = order
-        self.standardize = standardize
         self.device = device
 
         # Expanded features
@@ -54,7 +51,10 @@ class PolynomialExpansion(nn.Module):
         self._mask = PolynomialExpansion._create_mask(order, n_features)
 
         # Standardization
-        self._batch_norm = nn.BatchNorm1d(self.n_expanded_features) if standardize else None
+        self.count = nn.Parameter(torch.tensor(0, dtype=int), requires_grad=False)
+        self.means = nn.Parameter(torch.zeros(self.n_expanded_features), requires_grad=False)
+        self.squares = nn.Parameter(torch.ones(self.n_expanded_features), requires_grad=False)
+        self.stds = nn.Parameter(torch.ones(self.n_expanded_features), requires_grad=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -81,9 +81,7 @@ class PolynomialExpansion(nn.Module):
         for _ in range(self.order - 1):
             y = y.unsqueeze(-1)
             m = m.unsqueeze(x.ndim-1) * y
-        y = m[..., self._mask]
-        if self.standardize:
-            y = self._batch_norm(y)
+        y = (m[..., self._mask] - self.means) / self.stds
         if is1d:
             y = y.squeeze(0)
         return y
@@ -132,6 +130,45 @@ class PolynomialExpansion(nn.Module):
             Description.
         """
         return PolynomialExpansion._create_mask(order, n_features).sum().item()
+
+    def update_standardization(
+        self,
+        x: Union[torch.Tensor, ndarray],
+        reset: bool=False
+    ) -> None:
+        """
+        Update the mean and the standard deviation of the polynomial features.
+        This operation is not mandatory, but it can be helpful in order to have standardize features at the output of the layer, even in the case of standardized inputs (because polynomial transformations of standardized variables are generally not standardized).
+        This fonction can be called multiple times for different batches. To ensure correct moment calculation, no entry must be passed more than once.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input batch.
+        reset: bool, optional
+            If True, reset moment calculation.
+        """
+        if isinstance(x, ndarray):
+            x = torch.from_numpy(x)
+        prev_mode = self.training
+        self.eval()
+        y = self.forward(x) * self.stds + self.means
+        self.train(mode=prev_mode)
+
+        y = y.reshape(-1, y.size(-1))
+
+        if reset:
+            self.count *= 0
+
+        self.count += y.size(0)
+
+        self.means *= 1 - y.size(0)/self.count
+        self.means += y.size(0)/self.count * y.mean(dim=0)
+        self.squares *= 1 - y.size(0)/self.count
+        self.squares += y.size(0)/self.count * y.square().mean(dim=0)
+
+        self.stds *= 0
+        self.stds += torch.sqrt(self.squares - self.means**2)
 
     def __str__(self) -> str:
         """Returns str(self)"""

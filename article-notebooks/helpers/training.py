@@ -66,9 +66,9 @@ def procedure(
     dataset_train_transf = dataset_train.apply_transf(operator_x, operator_y)
     dataset_val_transf = dataset_val.apply_transf(operator_x, operator_y)
 
-    # meth = getattr(model, "update_standardization", None)
-    # if callable(meth):
-    #     meth(dataset_train_transf.getall()[0]) TODO
+    meth = getattr(model, "update_standardization", None)
+    if callable(meth):
+        meth(dataset_train_transf.getall()[0])
 
     ## Learning procedure
 

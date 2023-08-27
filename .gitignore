@@ -1,7 +1,8 @@
 */settings.json
 
 meudon-pdr/*
-!meudon-pdr/data/README.md
+!meudon-pdr/data/*.md
+!meudon-pdr/data/*.py
 
 article-notebooks/out-*
 example-notebooks/out-*

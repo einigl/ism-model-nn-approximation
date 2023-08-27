@@ -451,7 +451,6 @@ class NeuralNetwork(nn.Module, ABC):
     
     @staticmethod
     def _is_delegated(key: str, delegs: List[str]) -> bool:
-        print(key, delegs)
         for prefix in delegs:
             if key.startswith(prefix):
                 return True
