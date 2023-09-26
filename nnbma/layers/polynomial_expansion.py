@@ -1,9 +1,8 @@
 import itertools as itt
 from typing import Union
 
-from numpy import ndarray
-
 import torch
+from numpy import ndarray
 from torch import nn
 
 __all__ = ["PolynomialExpansion"]
@@ -81,7 +80,8 @@ class PolynomialExpansion(nn.Module):
         for _ in range(self.order - 1):
             y = y.unsqueeze(-1)
             m = m.unsqueeze(x.ndim-1) * y
-        y = (m[..., self._mask] - self.means) / self.stds
+        # y = (m[..., self._mask] - self.means) / self.stds
+        y = m.reshape(m.size(0), -1).matmul(self._mask)
         if is1d:
             y = y.squeeze(0)
         return y
@@ -101,6 +101,7 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
+        # Build hypercube
         mask = torch.ones(order * (n_features + 1,), dtype=bool)
         for coords in itt.product(*(range(n_features + 1) for _ in range(order))):
             # Overlook 0 order expension
@@ -112,7 +113,18 @@ class PolynomialExpansion(nn.Module):
                 if coords[k + 1] < coords[k]:
                     mask[coords] = False
                     break
-        return mask
+
+        # Flatten the hypercube
+        mask_cube = mask.flatten()
+
+        # Build the selection matrix
+        n_rows, n_cols = mask_cube.numel(), mask_cube.sum()
+        mask_mat = torch.zeros((n_rows, n_cols))
+        idx = torch.arange(n_rows)[mask_cube]
+        for i in range(n_cols):
+            mask_mat[idx[i], i] = 1.
+
+        return mask_mat.double()
 
     @staticmethod
     def expanded_features(order: int, n_features: int) -> int:
@@ -129,7 +141,8 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
-        return PolynomialExpansion._create_mask(order, n_features).sum().item()
+        # return PolynomialExpansion._create_mask(order, n_features).sum().item()
+        return PolynomialExpansion._create_mask(order, n_features).size(1)
 
     def update_standardization(
         self,
