@@ -1,6 +1,8 @@
 */settings.json
 
 meudon-pdr/*
+!meudon-pdr/data
+meudon-pdr/data/*
 !meudon-pdr/data/*.md
 !meudon-pdr/data/*.py
 
