@@ -1,3 +1,5 @@
+# Meudon PDR code dataset
+
 This directory should contains data downloaded from https://ism.obspm.fr/files/ArticleData/2023_Palud_Einig/2023_Palud_Einig_data.zip.
 
 For some reasons, you need to convert csv files to pickle in the following way. To do this, unzip the archive, move the `.csv` files in this directory and then run the script `csv_to_pkl.py`.
