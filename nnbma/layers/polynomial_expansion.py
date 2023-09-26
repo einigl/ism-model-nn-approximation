@@ -127,7 +127,7 @@ class PolynomialExpansion(nn.Module):
         for i in range(n_cols):
             mask_mat[idx[i], i] = 1.
 
-        return mask_mat.double()
+        return mask_mat
 
     @staticmethod
     def expanded_features(order: int, n_features: int) -> int:
