@@ -468,7 +468,10 @@ class NeuralNetwork(nn.Module, ABC):
         if not os.path.isdir(path):
             raise FileNotFoundError(f"{path} is not a directory")
 
-        return NeuralNetwork._recursive_load(path)
+        net = NeuralNetwork._recursive_load(path)
+        net.eval() # By default in evaluation mode
+
+        return net
 
     @staticmethod
     def _recursive_load(path: str) -> "NeuralNetwork":
@@ -501,7 +504,9 @@ class NeuralNetwork(nn.Module, ABC):
     def copy(self):
         """ TODO """
         d = {name: getattr(self, name) for name in list(signature(self.__init__).parameters)}
-        return type(self)(**d) # TODO: state dict
+        new = type(self)(**d)
+        new.load_state_dict(self.state_dict())
+        return new # TODO verify
 
     def __str__(self) -> str:
         d = list(signature(self.__init__).parameters)

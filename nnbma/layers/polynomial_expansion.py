@@ -1,5 +1,6 @@
 import itertools as itt
 from typing import Union
+from math import comb
 
 from numpy import ndarray
 
@@ -7,7 +8,6 @@ import torch
 from torch import nn
 
 __all__ = ["PolynomialExpansion"]
-
 
 class PolynomialExpansion(nn.Module):
     """
@@ -48,7 +48,10 @@ class PolynomialExpansion(nn.Module):
         self.n_expanded_features = PolynomialExpansion.expanded_features(order, n_features)
 
         # Mask creation
-        self._mask = PolynomialExpansion._create_mask(order, n_features)
+        self._mask = nn.Parameter(
+            PolynomialExpansion._create_mask(order, n_features),
+            requires_grad=False,
+        )
 
         # Standardization
         self.count = nn.Parameter(torch.tensor(0, dtype=int), requires_grad=False)
@@ -81,7 +84,8 @@ class PolynomialExpansion(nn.Module):
         for _ in range(self.order - 1):
             y = y.unsqueeze(-1)
             m = m.unsqueeze(x.ndim-1) * y
-        y = (m[..., self._mask] - self.means) / self.stds
+        y = m.reshape(*x.size()[:-1], -1).matmul(self._mask)
+        y = (y - self.means) / self.stds
         if is1d:
             y = y.squeeze(0)
         return y
@@ -101,18 +105,30 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
+        # Build hypercube
         mask = torch.ones(order * (n_features + 1,), dtype=bool)
         for coords in itt.product(*(range(n_features + 1) for _ in range(order))):
-            # Overlook 0 order expension
-            if sum(coords) == 0:
-                mask[coords] = False
 
             # Select only the upper part of the tensor
             for k in range(order - 1):
                 if coords[k + 1] < coords[k]:
                     mask[coords] = False
                     break
-        return mask
+
+        # Flatten the hypercube
+        mask_cube = mask.flatten()
+
+        # Overlook 0 order expansion
+        mask_cube[0] = False
+
+        # Build the selection matrix
+        n_rows, n_cols = mask_cube.numel(), mask_cube.sum()
+        mask_mat = torch.zeros((n_rows, n_cols))
+        idx = torch.arange(n_rows)[mask_cube]
+        for i in range(n_cols):
+            mask_mat[idx[i], i] = 1.
+
+        return mask_mat
 
     @staticmethod
     def expanded_features(order: int, n_features: int) -> int:
@@ -129,7 +145,25 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
-        return PolynomialExpansion._create_mask(order, n_features).sum().item()
+        # return PolynomialExpansion._create_mask(order, n_features).sum().item()
+        return PolynomialExpansion._create_mask(order, n_features).size(1)
+    
+    @staticmethod
+    def _expanded_features(order: int, n_features: int) -> int:
+        """
+        Returns the number of augmented polynomial features of order lower or equal to `order` and of `n_features` variables.
+
+        Parameters
+        ----------
+        param : type
+            Description.
+
+        Returns
+        -------
+        type
+            Description.
+        """
+        return sum([comb(n_features + d - 1, d) for d in range(1, order+1)])
 
     def update_standardization(
         self,
