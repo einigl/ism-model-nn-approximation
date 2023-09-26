@@ -144,24 +144,6 @@ class PolynomialExpansion(nn.Module):
         type
             Description.
         """
-        # return PolynomialExpansion._create_mask(order, n_features).sum().item()
-        return PolynomialExpansion._create_mask(order, n_features).size(1)
-
-    @staticmethod
-    def _expanded_features(order: int, n_features: int) -> int:
-        """
-        Returns the number of augmented polynomial features of order lower or equal to `order` and of `n_features` variables.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
         return sum([comb(n_features + d - 1, d) for d in range(1, order+1)])
 
     def update_standardization(
