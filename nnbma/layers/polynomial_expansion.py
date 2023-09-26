@@ -1,10 +1,9 @@
 import itertools as itt
-from typing import Union
 from math import comb
-
-from numpy import ndarray
+from typing import Union
 
 import torch
+from numpy import ndarray
 from torch import nn
 
 __all__ = ["PolynomialExpansion"]
@@ -128,7 +127,7 @@ class PolynomialExpansion(nn.Module):
         for i in range(n_cols):
             mask_mat[idx[i], i] = 1.
 
-        return mask_mat
+        return mask_mat.double()
 
     @staticmethod
     def expanded_features(order: int, n_features: int) -> int:
@@ -147,7 +146,7 @@ class PolynomialExpansion(nn.Module):
         """
         # return PolynomialExpansion._create_mask(order, n_features).sum().item()
         return PolynomialExpansion._create_mask(order, n_features).size(1)
-    
+
     @staticmethod
     def _expanded_features(order: int, n_features: int) -> int:
         """

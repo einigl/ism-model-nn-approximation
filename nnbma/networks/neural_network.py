@@ -1,12 +1,12 @@
+import json
 import os
 import pickle
-import json
 import shutil
 import time
 from abc import ABC, abstractmethod
-from typing import List, Literal, Optional, Tuple, Union, overload, Sequence
-from inspect import signature
 from collections import OrderedDict
+from inspect import signature
+from typing import List, Literal, Optional, Sequence, Tuple, Union, overload
 
 import numpy as np
 import torch
@@ -78,7 +78,7 @@ class NeuralNetwork(nn.Module, ABC):
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
             self.device = device
-            
+
         self.eval()
 
     @abstractmethod
@@ -99,7 +99,7 @@ class NeuralNetwork(nn.Module, ABC):
         type
             Description.
         """
-        assert device in ["cuda", "cpu"]
+        assert device in ["cuda", "cpu"], f"device = {device}"
         self.device = device
 
     def evaluate(self,
@@ -126,7 +126,7 @@ class NeuralNetwork(nn.Module, ABC):
                 raise ValueError('transform_inputs cannot be True when self.inputs_transformer is None')
             x = self.inputs_transformer(x)
 
-        x = torch.from_numpy(x).float().to(self.device)
+        x = torch.from_numpy(x).double().to(self.device)
         with torch.no_grad():
             y = self.forward(x)
         y = y.detach().cpu().numpy().astype(np.float64)
@@ -401,7 +401,7 @@ class NeuralNetwork(nn.Module, ABC):
                 if not all(os.path.isdir(file) or file.endswith(('.json', '.pkl', '.pth')) for file in f):
                     raise ValueError(f"{path} directory cannot be overwritten because it doesn't seem to be a NeuralNetwork save directory")
             shutil.rmtree(path)
-        
+
         NeuralNetwork._recursive_save(self, path)
 
     @staticmethod
@@ -448,14 +448,14 @@ class NeuralNetwork(nn.Module, ABC):
         if isinstance(obj, (list, tuple)):
             return all(NeuralNetwork._needs_json(v) for v in obj)
         return False
-    
+
     @staticmethod
     def _is_delegated(key: str, delegs: List[str]) -> bool:
         for prefix in delegs:
             if key.startswith(prefix):
                 return True
         return False
-        
+
     @classmethod
     def load(self, module_name: str, module_path: Optional[str] = None) -> "NeuralNetwork":
         if module_path is None:
