@@ -23,12 +23,28 @@ class NeuralNetwork(nn.Module, ABC):
 
     Attributes
     ----------
-    att : type
-        Description.
+    input_features : int
+        Dimension of input vector.
+    output_features : int
+        Dimension of output vector.
+    inputs_names: List[str] | None
+        List of inputs names. None if the names have not been specified.
+    outputs_names: List[str] | None
+        List of outputs names. None if the names have not been specified.
+    inputs_transformer : Operator | None
+        Transformation applied to the inputs before processing.
+    outputs_transformer: Operator | None
+        Transformation applied to the outputs after processing.
+    device : str
+        Device used ("cpu" or "cuda").
     """
 
     input_features: int
     output_features: int
+    inputs_names: Optional[List[str]] = None
+    outputs_names: Optional[List[str]] = None
+    inputs_transformer: Optional[Operator] = None
+    outputs_transformer: Optional[Operator] = None
     device: str
     current_output_subset: List[str]
     current_output_subset_indices: List[int]
@@ -87,17 +103,12 @@ class NeuralNetwork(nn.Module, ABC):
 
     def set_device(self, device: str) -> None:
         """
-        Description.
+        Set the device to use.
 
         Parameters
         ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
+        device : str
+            Device to use ("cpu" or "cuda").
         """
         assert device in ["cuda", "cpu"], f"device = {device}"
         self.device = device
@@ -108,28 +119,31 @@ class NeuralNetwork(nn.Module, ABC):
         transform_outputs: bool=False,
     ) -> np.ndarray:
         """
-        Description.
+        Process a batch of NumPy inputs.
 
         Parameters
         ----------
-        param : type
-            Description.
+        x : ndarray
+            Batch of inputs. Must be of shape N x self.n_inputs, where N is an arbitrary batch size.
+        transform_inputs : bool, optional
+            Specify if the data x has to be preprocessed (for instance standardized). If True, the preprocessing will be applied on the input data before being given to the network.
+        transform_inputs : bool, optional
+            Specify if the data x has to be postprocessed. If True, the postprocessing will be applied on the output data before being returned.
 
         Returns
         -------
-        type
-            Description.
+        ndarray
+            Batch of outputs of shape N x self.n_ouputs, where N is the inputs batch size.
         """
-
         if transform_inputs:
             if self.inputs_transformer is None:
                 raise ValueError('transform_inputs cannot be True when self.inputs_transformer is None')
             x = self.inputs_transformer(x)
 
-        x = torch.from_numpy(x).double().to(self.device)
+        x = torch.from_numpy(x).to(self.device)
         with torch.no_grad():
             y = self.forward(x)
-        y = y.detach().cpu().numpy().astype(np.float64)
+        y = y.detach().cpu().numpy()
 
         if transform_outputs:
             if self.outputs_transformer is None:
@@ -150,11 +164,11 @@ class NeuralNetwork(nn.Module, ABC):
         self, x: Union[torch.Tensor, np.ndarray]
     ) -> Union[torch.Tensor, np.ndarray]:
         """
-        Description.
+        Process a batch of NumPy ndarray or PyTorch Tensor inputs.
 
         Parameters
         ----------
-        param : type
+        x : ndarray | Tensor
             Description.
 
         Returns
@@ -163,31 +177,41 @@ class NeuralNetwork(nn.Module, ABC):
             Description.
         """
         if isinstance(x, np.ndarray):
-            return self.evaluate(x)
+            return self.evaluate(x, False, False)
         else:
-            return self.forward(x)
+            with torch.no_grad():
+                return self.forward(x)
 
-    def train(self, mode: bool = True) -> "NeuralNetwork":
+    def train(self, mode: bool=True) -> "NeuralNetwork":
+        """
+        Set the current mode of the network (train or eval).
+
+        Parameters
+        ----------
+        mode: bool, optional
+            If True, activate the training mode. If False, activate the evaluation mode. Défault: True.
+
+        Returns
+        -------
+        NeuralNetwork
+            Instance of network.
+        """
         super().train(mode)
         if mode:
             self.current_output_subset = self.outputs_names
             self.current_output_subset_indices = list(range(self.output_features))
 
     def restrict_to_output_subset(
-        self, output_subset: Optional[Union[List[str], List[int]]]
+        self,
+        output_subset: Optional[Union[List[str], List[int]]]=None,
     ) -> None:
         """
-        Description.
+        Restricts network outputs to those contained in `output_subset`.
 
         Parameters
         ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
+        output_subset : List[str] | List[int] | None, optional
+            .Network outputs required. If None, no restriction is applied. Default: None.
         """
         if self.training:
             raise PermissionError(
@@ -215,19 +239,22 @@ class NeuralNetwork(nn.Module, ABC):
         else:
             raise TypeError("output_subset must be a list of int or a list of str")
 
-    def _names_of_output_subset(self, output_subset: List[int]) -> List[int]:
+    def _names_of_output_subset(
+        self,
+        output_subset: List[int]
+    ) -> List[str]:
         """
-        Description.
+        Returns the names of outputs corresponding to the indices list `output_subset`.
 
         Parameters
         ----------
-        param : type
-            Description.
+        output_subset : List[int]
+            Indices list.
 
         Returns
         -------
-        type
-            Description.
+        List[str]
+            Names of outputs.
         """
         if not isinstance(output_subset, (list, tuple)):
             raise TypeError("output_subset must be a list")
@@ -239,19 +266,22 @@ class NeuralNetwork(nn.Module, ABC):
 
         return [self.outputs_names[k] for k in output_subset]
 
-    def _indices_of_output_subset(self, output_subset: List[str]) -> List[int]:
+    def _indices_of_output_subset(
+        self,
+        output_subset: List[str]
+    ) -> List[int]:
         """
-        Description.
+        Returns the indices of outputs corresponding to the names list `output_subset`.
 
         Parameters
         ----------
-        param : type
-            Description.
+        output_subset : List[str]
+            Names list.
 
         Returns
         -------
-        type
-            Description.
+        List[int]
+            Indices of outputs.
         """
         if not isinstance(output_subset, (list, tuple)):
             raise TypeError("output_subset must be a list")
@@ -268,37 +298,49 @@ class NeuralNetwork(nn.Module, ABC):
         return self._indices_of_sublist(self.outputs_names, output_subset)
 
     @staticmethod
-    def _check_if_sublist(seq: List, subseq: List) -> bool:
+    def _check_if_sublist(
+        seq: List,
+        subseq: List
+    ) -> bool:
         """
-        Description.
+        Returns True if all elements of `subseq` are also elements of `seq`. Else, return True. If `subseq` contains duplicates, the result will remain the same.
 
         Parameters
         ----------
-        param : type
-            Description.
+        seq : List
+            Reference list.
+        subseq : List
+            List to be checked for inclusion in `seq`.
 
         Returns
         -------
-        type
-            Description.
+        bool
+            Result.
         """
         return set(subseq) <= set(seq)
 
     @staticmethod
-    def _indices_of_sublist(seq: List, subseq: List) -> List[int]:
+    def _indices_of_sublist(
+        seq: List,
+        subseq: List
+    ) -> List[int]:
         """
-        Description.
+        Returns the indices in `seq` of the elements of `subseq`. If `subseq` contains duplicates, the returned list will also contain duplicates.
 
         Parameters
         ----------
-        param : type
-            Description.
+        seq : List
+            Reference list.
+        subseq : List
+            List whose elements will be retrieved in `seq`.
 
         Returns
         -------
-        type
-            Description.
+        List[int]
+            Indices of elements of `subset` in `seq`.
         """
+        if not NeuralNetwork._check_if_sublist(seq, subseq):
+            raise ValueError("subseq is not a sublist of seq")
         index_dict = dict((value, idx) for idx, value in enumerate(seq))
         return [index_dict[value] for value in subseq]  # Remark: the result is ordered
 
@@ -329,7 +371,7 @@ class NeuralNetwork(nn.Module, ABC):
         self,
         learnable_only: bool = True,
         display: bool = False,
-    ) -> Union[Tuple[int, Literal["b", "kb", "Mb", "Gb", "Tb", "Pb"]], str]:
+    ) -> Union[Tuple[int, Literal["B", "kB", "MB", "GB", "TB"]], str]:
         """
         Returns the number of parameters of the module.
         If `learnable_only` is True, then this function returns the number of parameters whose has a `requires_grad = True` property.
@@ -344,7 +386,7 @@ class NeuralNetwork(nn.Module, ABC):
         int
             Number of parameters.
         str
-            Unit ('b', 'kb', 'Mb', 'Gb', 'Tb')
+            Unit ('B', 'kB', 'MB', 'GB', 'TB')
         """
         self.train()
         size = 0.0
@@ -384,6 +426,18 @@ class NeuralNetwork(nn.Module, ABC):
         module_path: Optional[str] = None,
         overwrite: bool = True
     ) -> None:
+        """
+        Saves the network for future use.
+
+        Parameters
+        ----------
+        module_name: str
+            Name of the directory in which the model will be saved.
+        module_path: str | None
+            Path to the previous directory.
+        overwrite: bool
+            If True, the save can overwrite a previous backup of the same name. If False, if such a backup exists, an error will be raised.
+        """
         if module_path is not None and not os.path.isdir(module_path):
             os.mkdir(module_path)
 
@@ -409,6 +463,16 @@ class NeuralNetwork(nn.Module, ABC):
         module: nn.Module,
         path: str,
     ) -> None:
+        """
+        Make a recursive save of a PyTorch module. This makes it possible to deal with cases where some of the parameters of a network are themselves networks, in which case this method avoids duplicates in the backup and saves memory space.
+
+        Parameters
+        ----------
+        module: nn.Module
+            Module to save.
+        path:
+            Path to save the Module.
+        """
         os.mkdir(path)
         template = os.path.join(path, '{}')
 
@@ -437,12 +501,36 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _needs_recursion(obj: object) -> bool:
-        """ Returns True of obj is an object that need to be saved recursively, else False """
+        """
+        Returns True of obj is an object that need to be saved recursively, else False.
+        
+        Parameters
+        ----------
+        obj: object
+            Any Python object.
+        
+        Returns
+        -------
+        bool
+            True if `obj` needs to be save recursively, else False.
+        """
         return isinstance(obj, NeuralNetwork)
 
     @staticmethod
     def _needs_json(obj: object) -> bool:
-        """ Returns True if the object `obj` must be saved in a JSON file. """
+        """
+        Returns True if the object `obj` must be saved in a JSON file.
+
+        Parameters
+        ----------
+        obj: object
+            Any Python object.
+
+        Returns
+        -------
+        bool
+            True if `obj` needs to be save in a JSON, else False.
+        """
         if isinstance(obj, (bool, int, float, complex, str)):
             return True
         if isinstance(obj, (list, tuple)):
@@ -451,13 +539,42 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _is_delegated(key: str, delegs: List[str]) -> bool:
+        """
+        Returns True the entry of key `key` can be delegated to a recursive save. The attributs that are to be save recursively are contained in `delegs`.
+
+        Parameters
+        ----------
+        key: str
+            Key of entry.
+        delegs: List[str]
+            List containing keys of attributes that will be save recursively.
+
+        Returns
+        -------
+        bool
+            True if `key` is the name of an attribute whose save can be delegated, else False.
+        """
         for prefix in delegs:
             if key.startswith(prefix):
                 return True
         return False
 
     @classmethod
-    def load(self, module_name: str, module_path: Optional[str] = None) -> "NeuralNetwork":
+    def load(
+        self,
+        module_name: str,
+        module_path: Optional[str]=None
+    ) -> "NeuralNetwork":
+        """
+        Load a network from a local save made using the `.save` method.
+
+        Parameters
+        ----------
+        module_name: str
+            Name of the directory in which the model has been saved.
+        module_path: str | None
+            Path to the previous directory.            
+        """
         if module_path is None:
             path = module_name
         else:
@@ -475,6 +592,14 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _recursive_load(path: str) -> "NeuralNetwork":
+        """
+        Make a recursive load of a PyTorch module.
+
+        Parameters
+        ----------
+        path:
+            Path to the module to load.
+        """
         template = os.path.join(path, '{}')
 
         with open(template.format("init.pkl"), "rb") as f:
@@ -501,12 +626,20 @@ class NeuralNetwork(nn.Module, ABC):
 
         return module
 
-    def copy(self):
-        """ TODO """
+    def copy(self) -> 'NeuralNetwork':
+        """
+        Returns a copy of self which perform exactly the same operation. The copy is detached from the original network so any modification of one doesn't modify the other.
+        """
         d = {name: getattr(self, name) for name in list(signature(self.__init__).parameters)}
+
+        for name in d:
+            if NeuralNetwork._needs_recursion(d[name]):
+                d[name] = d[name].copy()
+
         new = type(self)(**d)
         new.load_state_dict(self.state_dict())
-        return new # TODO verify
+        
+        return new
 
     def __str__(self) -> str:
         d = list(signature(self.__init__).parameters)

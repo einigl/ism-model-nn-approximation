@@ -10,7 +10,7 @@ __all__ = ["PolynomialExpansion"]
 
 class PolynomialExpansion(nn.Module):
     """
-    Polynomial expension layer.
+    Polynomial expansion layer.
 
     Attributes
     ----------

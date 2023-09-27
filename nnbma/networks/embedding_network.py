@@ -1,12 +1,11 @@
-from typing import Optional, Sequence, Union
-from warnings import warn
-from itertools import accumulate, chain
+from typing import Optional, Sequence, Union, List
+from itertools import pairwise
 
 import torch
 from torch import Tensor, nn
 
+from ..layers import AdditionalModule
 from ..preprocessing import Operator
-
 from .neural_network import NeuralNetwork
 
 __all__ = ["EmbeddingNetwork"]
@@ -18,13 +17,23 @@ class EmbeddingNetwork(NeuralNetwork):
 
     Attributes
     ----------
-    att : type
-        Description.
+    subnetwork : NeuralNetork
+        Base network.
+    preprocessing: Optional[nn.Module]
+        PyTorch operation to apply before `subnetwork`.
+    postprocessing: Optional[nn.Module]
+        PyTorch operation to apply after `subnetwork`.
     """
+
+    subnetwork: NeuralNetwork
+    preprocessing: nn.Sequential
+    postprocessing: nn.Sequential
 
     def __init__(
         self,
-        subnetworks: Sequence[NeuralNetwork],
+        subnetwork: NeuralNetwork,
+        preprocessing: Union[None, AdditionalModule, List[AdditionalModule]]=None,
+        postprocessing: Union[None, AdditionalModule, List[AdditionalModule]]=None,
         inputs_names: Optional[Sequence[str]] = None,
         outputs_names: Optional[Sequence[str]] = None,
         inputs_transformer: Optional[Operator] = None,
@@ -36,31 +45,40 @@ class EmbeddingNetwork(NeuralNetwork):
 
         Parameters
         ----------
-        param : type
-            Description.
+        subnetwork: NeuralNetork
+            Base network.
+        preprocessing: None | AdditionalModule | List[AdditionalModule]
+            PyTorch operation to apply before `subnetwork`.
+        postprocessing: None | AdditionalModule | List[AdditionalModule]
+            PyTorch operation to apply after `subnetwork`.
         """
-        n_inputs = subnetworks[0].input_features
-        n_outputs = sum([net.output_features for net in subnetworks])
-
-        if any([not isinstance(net, NeuralNetwork) for net in subnetworks]):
-            raise ValueError("subnetworks must be a sequence of NeuralNetwork")
-
-        if outputs_names is not None and any([net.outputs_names is None for net in subnetworks]):
-            raise ValueError("No element of subnetwork can be None when outputs_names is not None")
-
-        if outputs_names is None:
-            if all([net.outputs_names is not None for net in subnetworks]):
-                self.outputs_names = list(chain(*[net.outputs_names for net in subnetworks]))
-            self.indices = list(range(sum([net.output_features for net in subnetworks])))            
-        else:
-            _outputs_names = list(chain(*[net.outputs_names for net in subnetworks]))
-            if len(set(_outputs_names)) != len(_outputs_names):
-                raise ValueError("Some subnetworks have the same outputs")
-            if not (set(_outputs_names) >= set(outputs_names)):
-                raise ValueError("Some elements of outputs_names are not findable in any subnetworks")
-            if set(_outputs_names) != set(outputs_names):
-                warn("Some subnetworks outputs are not retrieved")
-            self.indices = [_outputs_names.index(name) for name in outputs_names]
+        if preprocessing is None:
+            preprocessing = []
+        elif not isinstance(preprocessing, List):
+            preprocessing = [preprocessing]
+        if any([not isinstance(m, AdditionalModule) for m in preprocessing]):
+            raise TypeError("All elements of preprocessing must be instances of AdditionalModule")
+        
+        n_inputs = subnetwork.input_features
+        for m2, m1 in pairwise(([subnetwork] + preprocessing[::-1])):
+            if m2.input_features is not None and m1.output_features != m2.input_features:
+                raise ValueError(f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m1.input_features}")
+            if m1.input_features is not None:
+                n_inputs = m1.input_features
+        
+        if postprocessing is None:
+            postprocessing = []
+        elif not isinstance(postprocessing, List):
+            postprocessing = [postprocessing]
+        if any([not isinstance(m, AdditionalModule) for m in postprocessing]):
+            raise TypeError("All elements of postprocessing must be instances of AdditionalModule")
+        
+        n_outputs = subnetwork.output_features
+        for m1, m2 in pairwise([subnetwork] + postprocessing):
+            if m2.output_features is not None and m1.output_features != m2.input_features:
+                raise ValueError(f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m2.input_features})")
+            if m2.output_features is not None:
+                n_outputs = m2.output_features
 
         super().__init__(
             n_inputs,
@@ -72,7 +90,9 @@ class EmbeddingNetwork(NeuralNetwork):
             device=device,
         )
 
-        self.subnetworks = nn.ModuleList(subnetworks)
+        self.subnetwork = subnetwork
+        self.preprocessing = nn.Sequential(*preprocessing)
+        self.postprocessing = nn.Sequential(*postprocessing)
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -88,42 +108,7 @@ class EmbeddingNetwork(NeuralNetwork):
         torch.Tensor
             Output tensor
         """
-        res = []
-
-        for net in self.subnetworks:
-            res.append(net.forward(x))
-
-        return torch.concat(res, dim=-1)[..., self.indices]
-
-    def restrict_to_output_subset(
-        self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
-    ) -> None:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
-        super().restrict_to_output_subset(output_subset)
-
-        if isinstance(output_subset[0], int):
-            net_start_indices = list(accumulate([0] + [net.output_features for net in self.subnetworks][:-1]))
-            net_end_indices = list(accumulate([net.output_features for net in self.subnetworks]))
-
-        for net in self.subnetworks:
-            if output_subset is None:
-                net_output_subset = None
-            elif isinstance(output_subset[0], str):
-                net_output_subset = [name for name in output_subset if name in net.outputs_names]
-            else:
-                start, end = next(net_start_indices), next(net_end_indices)
-                real_output_subset = [self.indices[idx] for idx in output_subset if idx >= start and idx < end]
-                net_output_subset = [idx-start for idx in real_output_subset]
-            net.restrict_to_output_subset(net_output_subset)
+        y = self.preprocessing(x)
+        y = self.subnetwork(y)
+        y = self.postprocessing(y)
+        return y

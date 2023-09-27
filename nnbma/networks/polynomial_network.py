@@ -21,12 +21,14 @@ class PolynomialNetwork(NeuralNetwork):
         Description.
     """
 
+    order: int
+    n_poly_features: int
+
     def __init__(
         self,
         input_features: int,
         order: int,
         subnetwork: NeuralNetwork,
-        # standardize: bool = True,
         inputs_names: Optional[Sequence[str]] = None,
         outputs_names: Optional[Sequence[str]] = None,
         inputs_transformer: Optional[Operator] = None,
@@ -61,14 +63,10 @@ class PolynomialNetwork(NeuralNetwork):
                 f"The number of polynomial features ({self.n_poly_features}) does not match the input layer of the subnetwork ({subnetwork.input_features[0]})."
             )
 
-        # self.poly = PolynomialExpansion(
-        #     input_features, order, standardize, self.device
-        # )
         self.poly = PolynomialExpansion(
             input_features, order, self.device
         )
         self.subnetwork = subnetwork
-        # self.standardize = standardize
 
     def forward(self, x: Tensor) -> Tensor:
         """
