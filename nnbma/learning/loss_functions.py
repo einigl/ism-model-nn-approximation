@@ -1,12 +1,11 @@
 import math
-from abc import abstractmethod, ABC
-
-from typing import List, Tuple, Optional, Union
+from abc import ABC, abstractmethod
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import nn
 
-LOG10 = math.log(10.)
+LOG10 = math.log(10.0)
 
 __all__ = [
     "MaskedLossFunction",
@@ -17,7 +16,6 @@ __all__ = [
     "MaskedPowerLoss",
     "MaskedSeriesLoss",
     "MaskedRelErrorLoss",
-
     "EvolutiveLossFunction",
     "EvolutiveCoefficients",
     "HierarchicalCoefficients",
@@ -26,15 +24,15 @@ __all__ = [
     "EvolutiveMaskedPowerLoss",
     "EvolutiveMaskedSeriesLoss",
     "EvolutiveMaskedSeriesLossSmooth",
-
     "CauchyLoss",
     "SmoothL1Loss",
     "QuarticLoss",
     "MixedLoss",
-    "MixedLoss2"
+    "MixedLoss2",
 ]
 
 ## Masked loss functions
+
 
 class MaskedLossFunction(nn.Module, ABC):
     """
@@ -42,114 +40,125 @@ class MaskedLossFunction(nn.Module, ABC):
     """
 
     def __init__(self):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
 
     @abstractmethod
-    def forward(y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         pass
 
+
 class MaskOverlay(MaskedLossFunction):
-    """ TODO """
+    """TODO"""
 
     def __init__(self, loss):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
         self.loss = loss
 
     def forward(self, y_hat, y, _):
         return self.loss(y_hat, y)
 
-class MaskedMSELoss(MaskedLossFunction):
 
+class MaskedMSELoss(MaskedLossFunction):
     def __init__(self):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
 
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        return (w * (y_hat-y).square()).sum(dim=0).mean()
-    
-class MaskedWeightedMSELoss(MaskedLossFunction):
+        return (w * (y_hat - y).square()).sum(dim=0).mean()
 
+
+class MaskedWeightedMSELoss(MaskedLossFunction):
     def __init__(self, w: List):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
         self.w: torch.Tensor = torch.tensor(w).flatten()
 
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        return (self.w * w * (y_hat-y).square()).sum(dim=0).mean()
-    
-class MaskedMAELoss(MaskedLossFunction):
+        return (self.w * w * (y_hat - y).square()).sum(dim=0).mean()
 
+
+class MaskedMAELoss(MaskedLossFunction):
     def __init__(self):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
 
     def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor):
         w = mask / mask.sum(dim=0).clip(min=1)
-        return (w * (y_hat-y).abs()).sum(dim=0).mean()
-    
-class MaskedPowerLoss(MaskedLossFunction):
+        return (w * (y_hat - y).abs()).sum(dim=0).mean()
 
+
+class MaskedPowerLoss(MaskedLossFunction):
     degree: int
 
     def __init__(self, degree: int):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
         self.degree = degree
 
     def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor):
         w = mask / mask.sum(dim=0).clip(min=1)
-        return (w * (y_hat-y).abs()**self.degree).sum(dim=0).mean()
+        return (w * (y_hat - y).abs() ** self.degree).sum(dim=0).mean()
+
 
 class MaskedSeriesLoss(MaskedLossFunction):
-
     def __init__(self, order: int):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
         self.order = order
 
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        diff = (y_hat-y).abs()
-        err = 0. * diff
-        logk = 1.
-        diffk = 0. * diff + 1.
+        diff = (y_hat - y).abs()
+        err = 0.0 * diff
+        logk = 1.0
+        diffk = 0.0 * diff + 1.0
         denomk = 1
-        for k in range(1, self.order+1):
+        for k in range(1, self.order + 1):
             logk = logk * LOG10
             diffk = diffk * diff
             denomk = denomk * k
             err = err + logk * diffk / denomk
         return (w * err).sum(dim=0).mean()
 
-class MaskedRelErrorLoss(MaskedLossFunction):
 
+class MaskedRelErrorLoss(MaskedLossFunction):
     def __init__(self):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
 
     def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor):
         w = mask / mask.sum(dim=0).clip(min=1)
-        relerr = (LOG10 * (y_hat-y).abs()).exp() - 1
+        relerr = (LOG10 * (y_hat - y).abs()).exp() - 1
         return (w * relerr).sum(dim=0).mean()
-    
+
 
 ## Evolutive loss functions
 
-class EvolutiveLossFunction(nn.Module, ABC):
 
+class EvolutiveLossFunction(nn.Module, ABC):
     epoch: int
 
     def __init__(self):
-        """ Initializer """
+        """Initializer"""
         super().__init__()
         self.epoch = 0
 
     @abstractmethod
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         pass
 
     def step(self) -> None:
@@ -167,14 +176,14 @@ class EvolutiveLossFunction(nn.Module, ABC):
 
 ## Evolutive masked loss functions
 
-class EvolutiveCoefficients(ABC):
 
+class EvolutiveCoefficients(ABC):
     @abstractmethod
     def get(self, epoch: int) -> torch.Tensor:
         pass
 
-class HierarchicalCoefficients(EvolutiveCoefficients):
 
+class HierarchicalCoefficients(EvolutiveCoefficients):
     def __init__(self, tks: List[Tuple[int, int]]):
         self.tks = tks
         self.n_coeffs = len(self.tks)
@@ -182,16 +191,16 @@ class HierarchicalCoefficients(EvolutiveCoefficients):
     def get(self, epoch: int) -> torch.Tensor:
         a = torch.tensor([tk[0] for tk in self.tks])
         b = torch.tensor([tk[1] for tk in self.tks])
-        w = (epoch - a) / (b-a)
+        w = (epoch - a) / (b - a)
         return torch.clip(w, min=0, max=1)
-        
-class ProgressiveCoefficients(EvolutiveCoefficients):
 
+
+class ProgressiveCoefficients(EvolutiveCoefficients):
     def __init__(self, tks: List[int], sks: Union[float, List[float], None]):
         self.tks = tks
         self.n_coeffs = len(self.tks)
         if sks is None:
-            self.sks = [1.] * self.n_coeffs
+            self.sks = [1.0] * self.n_coeffs
         elif isinstance(sks, (float, int)):
             self.sks = [sks] * self.n_coeffs
         else:
@@ -203,14 +212,14 @@ class ProgressiveCoefficients(EvolutiveCoefficients):
     def get(self, epoch: int) -> torch.Tensor:
         t0 = torch.tensor(self.tks)
         s = torch.tensor(self.sks)
-        return self.sig((epoch-t0)/s)
+        return self.sig((epoch - t0) / s)
+
 
 class ProgressivePower(EvolutiveCoefficients):
-
     def __init__(self, tks: List[int], sks: Union[float, List[float], None]):
         self.tks = tks
         if sks is None:
-            self.sks = [1.] * len(tks)
+            self.sks = [1.0] * len(tks)
         elif isinstance(sks, (float, int)):
             self.sks = [sks] * len(tks)
         else:
@@ -222,8 +231,8 @@ class ProgressivePower(EvolutiveCoefficients):
     def get(self, epoch: int) -> torch.Tensor:
         return self.sig(torch.tensor(self.tks) - epoch).sum()
 
-class EvolutiveMaskedPowerLoss(EvolutiveLossFunction, MaskedLossFunction):
 
+class EvolutiveMaskedPowerLoss(EvolutiveLossFunction, MaskedLossFunction):
     coeffs: EvolutiveCoefficients
     w: torch.Tensor
 
@@ -232,16 +241,18 @@ class EvolutiveMaskedPowerLoss(EvolutiveLossFunction, MaskedLossFunction):
         super(MaskedLossFunction, self).__init__()
         self.pows = pows
         self.p = pows.get(1)
-    
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        return (w * (y_hat-y).abs()**self.p).sum(dim=0).mean()
+        return (w * (y_hat - y).abs() ** self.p).sum(dim=0).mean()
 
     def on_epoch_change(self) -> None:
         self.p = self.pows.get(self.epoch)
 
-class EvolutiveMaskedSeriesLoss(EvolutiveLossFunction, MaskedLossFunction):
 
+class EvolutiveMaskedSeriesLoss(EvolutiveLossFunction, MaskedLossFunction):
     coeffs: EvolutiveCoefficients
     w: torch.Tensor
 
@@ -250,51 +261,55 @@ class EvolutiveMaskedSeriesLoss(EvolutiveLossFunction, MaskedLossFunction):
         super(MaskedLossFunction, self).__init__()
         self.coeffs = coeffs
         self.w = coeffs.get(1)
-    
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        diff = (y_hat-y).abs()
-        err = 0. * diff
-        logk = 1.
-        diffk = 0. * diff + 1.
+        diff = (y_hat - y).abs()
+        err = 0.0 * diff
+        logk = 1.0
+        diffk = 0.0 * diff + 1.0
         denomk = 1
-        for k in range(1, self.w.numel()+1):
+        for k in range(1, self.w.numel() + 1):
             logk = logk * LOG10
             diffk = diffk * diff
             denomk = denomk * k
-            err = err + self.w[k-1] * logk * diffk / denomk
+            err = err + self.w[k - 1] * logk * diffk / denomk
         return (w * err).sum(dim=0).mean()
 
     def on_epoch_change(self) -> None:
         self.w = self.coeffs.get(self.epoch)
 
-class EvolutiveMaskedSeriesLossSmooth(EvolutiveLossFunction, MaskedLossFunction):
 
+class EvolutiveMaskedSeriesLossSmooth(EvolutiveLossFunction, MaskedLossFunction):
     coeffs: EvolutiveCoefficients
     beta: float
     w: torch.Tensor
 
-    def __init__(self, coeffs: EvolutiveCoefficients, beta: float=1.):
+    def __init__(self, coeffs: EvolutiveCoefficients, beta: float = 1.0):
         super(EvolutiveLossFunction, self).__init__()
         super(MaskedLossFunction, self).__init__()
         self.coeffs = coeffs
         self.beta = beta
         self.w = coeffs.get(1)
 
-        self.smoothl1 = nn.SmoothL1Loss(reduction='none', beta=self.beta)
-    
-    def forward(self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        self.smoothl1 = nn.SmoothL1Loss(reduction="none", beta=self.beta)
+
+    def forward(
+        self, y_hat: torch.Tensor, y: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
         w = mask / mask.sum(dim=0).clip(min=1)
-        diff = self.smoothl1(y_hat, y) 
-        err = 0. * diff
-        logk = 1.
-        diffk = 0. * diff + 1.
+        diff = self.smoothl1(y_hat, y)
+        err = 0.0 * diff
+        logk = 1.0
+        diffk = 0.0 * diff + 1.0
         denomk = 1
-        for k in range(1, self.w.numel()+1):
+        for k in range(1, self.w.numel() + 1):
             logk = logk * LOG10
             diffk = diffk * diff
             denomk = denomk * k
-            err = err + self.w[k-1] * logk * diffk / denomk
+            err = err + self.w[k - 1] * logk * diffk / denomk
         return (w * err).sum(dim=0).mean()
 
     def on_epoch_change(self) -> None:
@@ -303,16 +318,16 @@ class EvolutiveMaskedSeriesLossSmooth(EvolutiveLossFunction, MaskedLossFunction)
 
 ## Regular custom loss functions
 
-class CauchyLoss(nn.Module):
 
+class CauchyLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return torch.log( 1 + (y_hat-y).square() ).mean()
+        return torch.log(1 + (y_hat - y).square()).mean()
+
 
 class SmoothL1Loss(nn.Module):
-
     beta: float
 
     def __init__(self, beta: float):
@@ -329,16 +344,16 @@ class SmoothL1Loss(nn.Module):
             )
         )
 
-class QuarticLoss(nn.Module):
 
+class QuarticLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.mean(torch.square(torch.square(y_hat - y)))
 
-class MixedLoss(nn.Module):
 
+class MixedLoss(nn.Module):
     threshold_in_true: Optional[float]
 
     def __init__(self, threshold_in_true: Optional[float] = None):
@@ -356,9 +371,9 @@ class MixedLoss(nn.Module):
             )
         )
 
-class MixedLoss2(nn.Module):
 
-    threshold_in_true: Optional[float] = None,
+class MixedLoss2(nn.Module):
+    threshold_in_true: Optional[float] = (None,)
 
     def __init__(self, threshold_in_true: Optional[float] = None):
         super().__init__()

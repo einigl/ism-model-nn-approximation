@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, List
+from typing import List, Optional, Sequence, Union
 
 # issue with import for python 3.9
 try:
@@ -37,8 +37,8 @@ class EmbeddingNetwork(NeuralNetwork):
     def __init__(
         self,
         subnetwork: NeuralNetwork,
-        preprocessing: Union[None, AdditionalModule, List[AdditionalModule]]=None,
-        postprocessing: Union[None, AdditionalModule, List[AdditionalModule]]=None,
+        preprocessing: Union[None, AdditionalModule, List[AdditionalModule]] = None,
+        postprocessing: Union[None, AdditionalModule, List[AdditionalModule]] = None,
         inputs_names: Optional[Sequence[str]] = None,
         outputs_names: Optional[Sequence[str]] = None,
         inputs_transformer: Optional[Operator] = None,
@@ -62,12 +62,19 @@ class EmbeddingNetwork(NeuralNetwork):
         elif not isinstance(preprocessing, List):
             preprocessing = [preprocessing]
         if any([not isinstance(m, AdditionalModule) for m in preprocessing]):
-            raise TypeError("All elements of preprocessing must be instances of AdditionalModule")
+            raise TypeError(
+                "All elements of preprocessing must be instances of AdditionalModule"
+            )
 
         n_inputs = subnetwork.input_features
         for m2, m1 in pairwise(([subnetwork] + preprocessing[::-1])):
-            if m2.input_features is not None and m1.output_features != m2.input_features:
-                raise ValueError(f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m1.input_features}")
+            if (
+                m2.input_features is not None
+                and m1.output_features != m2.input_features
+            ):
+                raise ValueError(
+                    f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m1.input_features}"
+                )
             if m1.input_features is not None:
                 n_inputs = m1.input_features
 
@@ -76,12 +83,19 @@ class EmbeddingNetwork(NeuralNetwork):
         elif not isinstance(postprocessing, List):
             postprocessing = [postprocessing]
         if any([not isinstance(m, AdditionalModule) for m in postprocessing]):
-            raise TypeError("All elements of postprocessing must be instances of AdditionalModule")
+            raise TypeError(
+                "All elements of postprocessing must be instances of AdditionalModule"
+            )
 
         n_outputs = subnetwork.output_features
         for m1, m2 in pairwise([subnetwork] + postprocessing):
-            if m2.output_features is not None and m1.output_features != m2.input_features:
-                raise ValueError(f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m2.input_features})")
+            if (
+                m2.output_features is not None
+                and m1.output_features != m2.input_features
+            ):
+                raise ValueError(
+                    f"{type(m1).__name__}.output_features ({m1.output_features}) doesn't match {type(m2).__name__}.input_features ({m2.input_features})"
+                )
             if m2.output_features is not None:
                 n_outputs = m2.output_features
 

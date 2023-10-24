@@ -9,15 +9,18 @@ from typing import Any, Dict, List, Optional, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from helpers.lines import (
+    filter_molecules,
+    molecule_and_transition,
+    molecules_among_lines,
+)
+from helpers.plots import Plotter
+from helpers.preprocessing import build_data_transformers, prepare_data
 from tqdm import tqdm
 
 from nnbma.dataset import MaskDataset, RegressionDataset
 from nnbma.learning import LearningParameters
 from nnbma.networks import NeuralNetwork
-
-from helpers.preprocessing import prepare_data, build_data_transformers
-from helpers.plots import Plotter
-from helpers.lines import filter_molecules, molecules_among_lines, molecule_and_transition
 
 
 def save_readme(
@@ -39,7 +42,7 @@ def save_readme(
     n_batch = 1_000
     repeat = 50
     _mean, _min, _max = model.time(n_batch, repeat)
-    _pm = max(_mean-_min, _max-_mean)
+    _pm = max(_mean - _min, _max - _mean)
 
     with open(filename, "wt") as f:
         f.writelines(
@@ -52,7 +55,7 @@ def save_readme(
                 f"Network: {model}\n\n",
                 f"Number of learnable parameters: {model.count_parameters():,}\n",
                 f"Size of learnable parameters: {model.count_bytes(display=True)}\n\n",
-                f"Computation time ({n_batch} entries, {repeat} iterations): {1e3*_mean:.3f} ms +/- {1e3*_pm:.3f}"
+                f"Computation time ({n_batch} entries, {repeat} iterations): {1e3*_mean:.3f} ms +/- {1e3*_pm:.3f}",
             ]
         )
 
@@ -106,7 +109,7 @@ def save_relative_errors(
     plt.savefig(filename)
     plt.close()
 
-    # 
+    #
 
     filename = os.path.join(path, "errors_asymptotic.png")
 
@@ -146,6 +149,7 @@ def save_lr(
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
+
 
 def save_batch_size(
     results: Dict[str, Any],
@@ -297,16 +301,22 @@ def badly_reconstructed(
     rows, cols = np.unravel_index(indices, errors.shape)
 
     data = [
-        [dataset_ref.outputs_names[cols[n]]]\
-            + list(x[rows[n]])\
-            + [rel_err[rows[n], cols[n]], errors[rows[n], cols[n]], y_ref[rows[n], cols[n]], y_out[rows[n], cols[n]]]\
-        for n in tqdm(range(round(0.01 * rows.shape[0])))]
-            
+        [dataset_ref.outputs_names[cols[n]]]
+        + list(x[rows[n]])
+        + [
+            rel_err[rows[n], cols[n]],
+            errors[rows[n], cols[n]],
+            y_ref[rows[n], cols[n]],
+            y_out[rows[n], cols[n]],
+        ]
+        for n in tqdm(range(round(0.01 * rows.shape[0])))
+    ]
+
     df = pd.DataFrame(
         data,
         columns=["line"]
         + dataset_ref.inputs_names
-        + ["Error factor (%)", "Abs. error (log)", "Target value", "Estimated value"]
+        + ["Error factor (%)", "Abs. error (log)", "Target value", "Estimated value"],
     )
 
     df.iloc[:n_points].to_csv(filename)
@@ -318,7 +328,7 @@ def badly_reconstructed(
 
     if model is None:
         return
-    
+
     plotter = Plotter(
         df_inputs=dataset_ref.to_pandas()[0],
         df_outputs=dataset_ref.to_pandas()[1],
@@ -332,9 +342,16 @@ def badly_reconstructed(
     new_df = pd.DataFrame(columns=df.columns)
     for _ in tqdm(range(n_profiles)):
         worst = df.iloc[0]
-        mol_lines = filter_molecules(all_lines, molecule_and_transition(worst['lines'])[0])
+        mol_lines = filter_molecules(
+            all_lines, molecule_and_transition(worst["lines"])[0]
+        )
 
-        rows = df[(df['P']==worst['P']) & (df['radm']==worst['radm']) & (df['Avmax']==worst['Avmax']) & (df['lines'].isin(mol_lines))]
+        rows = df[
+            (df["P"] == worst["P"])
+            & (df["radm"] == worst["radm"])
+            & (df["Avmax"] == worst["Avmax"])
+            & (df["lines"].isin(mol_lines))
+        ]
         new_df = pd.concat([new_df, df.iloc[:1]])
         df = df.drop(index=rows.index)
         if len(df) == 0:
@@ -349,6 +366,7 @@ def badly_reconstructed(
         errors=True,
     )
     new_df.to_csv(os.path.join(path, "badly_reconstructed_profiles", "table.csv"))
+
 
 def masked_values(
     dataset: RegressionDataset,
@@ -379,8 +397,8 @@ def save_results(
     learning_params: LearningParameters,
     mask: bool,
     directory: str,
-    architecture_name: Optional[str]=None,
-    plot_profiles: bool=True,
+    architecture_name: Optional[str] = None,
+    plot_profiles: bool = True,
 ) -> None:
     """TODO"""
 

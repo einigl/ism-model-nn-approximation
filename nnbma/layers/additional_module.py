@@ -6,18 +6,10 @@ from torch import nn
 
 __all__ = ["AdditionalModule"]
 
+
 class AdditionalModule(nn.Module, ABC):
     """
     Additional module.
-
-    Attributes
-    ----------
-    input_features: int
-        Number of input features.
-    output_features: int
-        Number of output features.
-    device: str
-        Device to use. Default: device.
     """
 
     input_features: Optional[int]
@@ -28,10 +20,9 @@ class AdditionalModule(nn.Module, ABC):
         self,
         input_features: Optional[int],
         output_features: Optional[int],
-        device: str='cpu',
+        device: str = "cpu",
     ):
         """
-        Initializer.
 
         Parameters
         ----------
@@ -40,7 +31,7 @@ class AdditionalModule(nn.Module, ABC):
         output_features: int
             Number of output features.
         device: str
-            Device to use. Default: device
+            Device to use, by default "cpu".
         """
         super().__init__()
 
@@ -51,21 +42,18 @@ class AdditionalModule(nn.Module, ABC):
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Description.
+        Evaluates the associated pytorch function.
 
         Parameters
         ----------
         x : Tensor
-            Input tensor.
+            Input tensor
 
         Returns
         -------
         Tensor
-            Output tensor.
+            Output tensor
         """
 
     def __str__(self) -> str:
-        """
-        Returns str(self)
-        """
         return f"Additional module ({self.input_features} input features, {self.output_features} output features)"

@@ -72,9 +72,13 @@ class NeuralNetwork(nn.Module, ABC):
         self.output_features = output_features
 
         if inputs_names is not None and len(inputs_names) != input_features:
-            raise ValueError(f"inputs_names of length {len(inputs_names)} is incompatible with {input_features} input_features")
+            raise ValueError(
+                f"inputs_names of length {len(inputs_names)} is incompatible with {input_features} input_features"
+            )
         if outputs_names is not None and len(outputs_names) != output_features:
-            raise ValueError(f"outputs_names of length {len(outputs_names)} is incompatible with {output_features} outputs_features")
+            raise ValueError(
+                f"outputs_names of length {len(outputs_names)} is incompatible with {output_features} outputs_features"
+            )
 
         if inputs_names is not None and len(set(inputs_names)) != len(inputs_names):
             raise ValueError("inputs_names has duplicates")
@@ -113,10 +117,11 @@ class NeuralNetwork(nn.Module, ABC):
         assert device in ["cuda", "cpu"], f"device = {device}"
         self.device = device
 
-    def evaluate(self,
+    def evaluate(
+        self,
         x: np.ndarray,
-        transform_inputs: bool=False,
-        transform_outputs: bool=False,
+        transform_inputs: bool = False,
+        transform_outputs: bool = False,
     ) -> np.ndarray:
         """
         Process a batch of NumPy inputs.
@@ -137,7 +142,9 @@ class NeuralNetwork(nn.Module, ABC):
         """
         if transform_inputs:
             if self.inputs_transformer is None:
-                raise ValueError('transform_inputs cannot be True when self.inputs_transformer is None')
+                raise ValueError(
+                    "transform_inputs cannot be True when self.inputs_transformer is None"
+                )
             x = self.inputs_transformer(x)
 
         x = torch.from_numpy(x).to(self.device)
@@ -147,7 +154,9 @@ class NeuralNetwork(nn.Module, ABC):
 
         if transform_outputs:
             if self.outputs_transformer is None:
-                raise ValueError('transform_outputs cannot be True when self.outputs_transformer is None')
+                raise ValueError(
+                    "transform_outputs cannot be True when self.outputs_transformer is None"
+                )
             y = self.outputs_transformer(y)
 
         return y
@@ -182,14 +191,14 @@ class NeuralNetwork(nn.Module, ABC):
             with torch.no_grad():
                 return self.forward(x)
 
-    def train(self, mode: bool=True) -> "NeuralNetwork":
+    def train(self, mode: bool = True) -> "NeuralNetwork":
         """
         Set the current mode of the network (train or eval).
 
         Parameters
         ----------
         mode: bool, optional
-            If True, activate the training mode. If False, activate the evaluation mode. Défault: True.
+            If True, activate the training mode. If False, activate the evaluation mode. Default: True.
 
         Returns
         -------
@@ -203,7 +212,7 @@ class NeuralNetwork(nn.Module, ABC):
 
     def restrict_to_output_subset(
         self,
-        output_subset: Optional[Union[List[str], List[int]]]=None,
+        output_subset: Optional[Union[List[str], List[int]]] = None,
     ) -> None:
         """
         Restricts network outputs to those contained in `output_subset`.
@@ -239,10 +248,7 @@ class NeuralNetwork(nn.Module, ABC):
         else:
             raise TypeError("output_subset must be a list of int or a list of str")
 
-    def _names_of_output_subset(
-        self,
-        output_subset: List[int]
-    ) -> List[str]:
+    def _names_of_output_subset(self, output_subset: List[int]) -> List[str]:
         """
         Returns the names of outputs corresponding to the indices list `output_subset`.
 
@@ -266,10 +272,7 @@ class NeuralNetwork(nn.Module, ABC):
 
         return [self.outputs_names[k] for k in output_subset]
 
-    def _indices_of_output_subset(
-        self,
-        output_subset: List[str]
-    ) -> List[int]:
+    def _indices_of_output_subset(self, output_subset: List[str]) -> List[int]:
         """
         Returns the indices of outputs corresponding to the names list `output_subset`.
 
@@ -298,10 +301,7 @@ class NeuralNetwork(nn.Module, ABC):
         return self._indices_of_sublist(self.outputs_names, output_subset)
 
     @staticmethod
-    def _check_if_sublist(
-        seq: List,
-        subseq: List
-    ) -> bool:
+    def _check_if_sublist(seq: List, subseq: List) -> bool:
         """
         Returns True if all elements of `subseq` are also elements of `seq`. Else, return True. If `subseq` contains duplicates, the result will remain the same.
 
@@ -320,10 +320,7 @@ class NeuralNetwork(nn.Module, ABC):
         return set(subseq) <= set(seq)
 
     @staticmethod
-    def _indices_of_sublist(
-        seq: List,
-        subseq: List
-    ) -> List[int]:
+    def _indices_of_sublist(seq: List, subseq: List) -> List[int]:
         """
         Returns the indices in `seq` of the elements of `subseq`. If `subseq` contains duplicates, the returned list will also contain duplicates.
 
@@ -397,7 +394,7 @@ class NeuralNetwork(nn.Module, ABC):
                 )  # Does not take into consideration the Python object size which can be obtain using sys.getsizeof()
         self.eval()
 
-        for (v, u) in [(1e0, "B"), (1e3, "kB"), (1e6, "MB"), (1e9, "GB"), (1e12, "TB")]:
+        for v, u in [(1e0, "B"), (1e3, "kB"), (1e6, "MB"), (1e9, "GB"), (1e12, "TB")]:
             if size < 1e3 * v:
                 if display:
                     return f"{size / v:.2f} {u}"
@@ -414,17 +411,18 @@ class NeuralNetwork(nn.Module, ABC):
             raise TypeError(f"repeat must be an integer, not {type(repeat)}")
         times = []
         for it in range(repeat):
-            x = torch.normal(0., 1., size=(n, self.input_features))
+            x = torch.normal(0.0, 1.0, size=(n, self.input_features))
             tic = time.time()
             self.forward(x)
             toc = time.time()
-            times.append(toc-tic)
-        return sum(times)/repeat, min(times), max(times)
+            times.append(toc - tic)
+        return sum(times) / repeat, min(times), max(times)
 
-    def save(self,
+    def save(
+        self,
         module_name: str,
         module_path: Optional[str] = None,
-        overwrite: bool = True
+        overwrite: bool = True,
     ) -> None:
         """
         Saves the network for future use.
@@ -449,11 +447,16 @@ class NeuralNetwork(nn.Module, ABC):
         if not os.path.exists(path):
             pass
         elif not overwrite:
-            raise FileExistsError(f'{path} already exists')
+            raise FileExistsError(f"{path} already exists")
         else:
             for _, __, f in os.walk(path):
-                if not all(os.path.isdir(file) or file.endswith(('.json', '.pkl', '.pth')) for file in f):
-                    raise ValueError(f"{path} directory cannot be overwritten because it doesn't seem to be a NeuralNetwork save directory")
+                if not all(
+                    os.path.isdir(file) or file.endswith((".json", ".pkl", ".pth"))
+                    for file in f
+                ):
+                    raise ValueError(
+                        f"{path} directory cannot be overwritten because it doesn't seem to be a NeuralNetwork save directory"
+                    )
             shutil.rmtree(path)
 
         NeuralNetwork._recursive_save(self, path)
@@ -474,7 +477,7 @@ class NeuralNetwork(nn.Module, ABC):
             Path to save the Module.
         """
         os.mkdir(path)
-        template = os.path.join(path, '{}')
+        template = os.path.join(path, "{}")
 
         args = list(signature(module.__init__).parameters)
         with open(template.format("init.pkl"), "wb") as f:
@@ -488,27 +491,35 @@ class NeuralNetwork(nn.Module, ABC):
                 delegs.append(arg)
             else:
                 if NeuralNetwork._needs_json(obj):
-                    with open(template.format(f"{arg}.json"), "w", encoding="utf-8") as f:
+                    with open(
+                        template.format(f"{arg}.json"), "w", encoding="utf-8"
+                    ) as f:
                         json.dump(obj, f, ensure_ascii=False, indent=4)
-                else :
+                else:
                     with open(template.format(f"{arg}.pkl"), "wb") as f:
                         pickle.dump(obj, f)
 
         sd = module.state_dict()
-        sd = OrderedDict([(key, val) for key, val in sd.items() if not NeuralNetwork._is_delegated(key, delegs)])
+        sd = OrderedDict(
+            [
+                (key, val)
+                for key, val in sd.items()
+                if not NeuralNetwork._is_delegated(key, delegs)
+            ]
+        )
 
-        torch.save(sd, template.format('state_dict.pth'))
+        torch.save(sd, template.format("state_dict.pth"))
 
     @staticmethod
     def _needs_recursion(obj: object) -> bool:
         """
         Returns True of obj is an object that need to be saved recursively, else False.
-        
+
         Parameters
         ----------
         obj: object
             Any Python object.
-        
+
         Returns
         -------
         bool
@@ -561,9 +572,7 @@ class NeuralNetwork(nn.Module, ABC):
 
     @classmethod
     def load(
-        self,
-        module_name: str,
-        module_path: Optional[str]=None
+        self, module_name: str, module_path: Optional[str] = None
     ) -> "NeuralNetwork":
         """
         Load a network from a local save made using the `.save` method.
@@ -573,7 +582,7 @@ class NeuralNetwork(nn.Module, ABC):
         module_name: str
             Name of the directory in which the model has been saved.
         module_path: str | None
-            Path to the previous directory.            
+            Path to the previous directory.
         """
         if module_path is None:
             path = module_name
@@ -586,7 +595,7 @@ class NeuralNetwork(nn.Module, ABC):
             raise FileNotFoundError(f"{path} is not a directory")
 
         net = NeuralNetwork._recursive_load(path)
-        net.eval() # By default in evaluation mode
+        net.eval()  # By default in evaluation mode
 
         return net
 
@@ -600,7 +609,7 @@ class NeuralNetwork(nn.Module, ABC):
         path:
             Path to the module to load.
         """
-        template = os.path.join(path, '{}')
+        template = os.path.join(path, "{}")
 
         with open(template.format("init.pkl"), "rb") as f:
             type_module, args = pickle.load(f)
@@ -621,16 +630,19 @@ class NeuralNetwork(nn.Module, ABC):
         module: nn.Module = type_module(**d)
 
         sd = module.state_dict()
-        sd.update(torch.load(template.format('state_dict.pth')))
+        sd.update(torch.load(template.format("state_dict.pth")))
         module.load_state_dict(sd)
 
         return module
 
-    def copy(self) -> 'NeuralNetwork':
+    def copy(self) -> "NeuralNetwork":
         """
         Returns a copy of self which perform exactly the same operation. The copy is detached from the original network so any modification of one doesn't modify the other.
         """
-        d = {name: getattr(self, name) for name in list(signature(self.__init__).parameters)}
+        d = {
+            name: getattr(self, name)
+            for name in list(signature(self.__init__).parameters)
+        }
 
         for name in d:
             if NeuralNetwork._needs_recursion(d[name]):
@@ -638,17 +650,17 @@ class NeuralNetwork(nn.Module, ABC):
 
         new = type(self)(**d)
         new.load_state_dict(self.state_dict())
-        
+
         return new
 
     def __str__(self) -> str:
         d = list(signature(self.__init__).parameters)
-        descr = f'{type(self).__name__}:\n'
+        descr = f"{type(self).__name__}:\n"
         for arg in d:
             obj = getattr(self, arg)
             if isinstance(obj, list) and len(obj) > 6:
-                obj = obj[:6] + ['...']
+                obj = obj[:6] + ["..."]
             elif isinstance(obj, tuple):
-                obj = obj[:6] + ('...', )
-            descr += f'\t{arg}: {obj}\n'
+                obj = obj[:6] + ("...",)
+            descr += f"\t{arg}: {obj}\n"
         return descr

@@ -12,4 +12,6 @@ for file in os.listdir():
         print("Done")
 
 if empty:
-    print("There is no .csv file in this directory. Maybe you need to move files from subfolders to the current directory.")
+    print(
+        "There is no .csv file in this directory. Maybe you need to move files from subfolders to the current directory."
+    )

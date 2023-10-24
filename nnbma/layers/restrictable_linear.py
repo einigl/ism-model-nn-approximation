@@ -9,11 +9,6 @@ __all__ = ["RestrictableLinear"]
 class RestrictableLinear(nn.Linear):
     """
     Restrictable linear layer.
-
-    Attributes
-    ----------
-    att : type
-        Description.
     """
 
     def __init__(
@@ -26,12 +21,21 @@ class RestrictableLinear(nn.Linear):
         outputs_names: Optional[Sequence[str]] = None,
     ):
         """
-        Initializer.
 
         Parameters
         ----------
-        param : type
-            Description.
+        in_features : int
+            input dimension
+        out_features : int
+            output dimension
+        bias : bool, optional
+            use a bias vector, by default True
+        device : Optional[str], optional
+            device on which the graph should be defined (cpu or cuda), by default None
+        dtype : _type_, optional
+            _description_, by default None
+        outputs_names : Optional[Sequence[str]], optional
+            sequence of output names, by default None
         """
         super().__init__(in_features, out_features, bias, device, dtype)
 
@@ -41,36 +45,35 @@ class RestrictableLinear(nn.Linear):
         self.subbias = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Description.
+        """Evaluates the layer, restricted or not depending of past settings.
 
         Parameters
         ----------
-        param : type
-            Description.
+        x : torch.Tensor
+            input tensor
 
         Returns
         -------
-        type
-            Description.
+        torch.Tensor
+            output tensor
         """
         if self.training:
             return nn.functional.linear(x, self.weight, self.bias)
         return nn.functional.linear(x, self.subweight, self.subbias)
 
     def restrict_to_output_subset(self, indices: Sequence[int]) -> None:
-        """
-        Description.
+        """Restricts the output to a subset
 
         Parameters
         ----------
-        param : type
-            Description.
+        indices : Sequence[int]
+            index subset to predict
 
-        Returns
-        -------
-        type
-            Description.
+        Raises
+        ------
+        PermissionError
+            the restriction cannot be applied in train mode.
+            To apply the restriction, first turn the model to ``.eval()`` mode.
         """
         if self.training:
             raise PermissionError(
@@ -90,5 +93,4 @@ class RestrictableLinear(nn.Linear):
             self.subbias = None if self.bias is None else self.bias.data
 
     def __str__(self) -> str:
-        """ Returns str(self) """
         return f"Restrictable layer ({self.in_features} input features, {self.out_features} output features)"

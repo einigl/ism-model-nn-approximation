@@ -1,6 +1,16 @@
 import os
 import pickle
-from typing import Callable, List, Dict, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    overload,
+)
 
 import numpy as np
 import pandas as pd
@@ -11,21 +21,27 @@ __all__ = ["MaskDataset", "MaskSubset"]
 
 
 class MaskDataset(Dataset):
-    """Dataset dedicated to ignore values during learning."""
+    """Dataset dedicated to ignore some specified values during learning."""
 
     def __init__(
         self,
         m: np.ndarray,
         features_names: Optional[List[str]] = None,
     ):
-        """
-        Initializer.
+        r"""
 
-        Parameters
+        Attributes
         ----------
-        m : numpy.ndarray
+        m : np.ndarray
             Array containing the output features of the regression model.
-            y must be of shape N x F where N is the number of entries and F the number of features.
+            y must be of shape :math:`N \times F` where :math:`N` is the number of entries and :math:`F` the number of features.
+        features_names : Optional[List[str]], optional
+            list of feature names, by default None
+
+        Raises
+        ------
+        ValueError
+            m and features_names must have the same number of features
         """
         super().__init__()
 
@@ -33,7 +49,7 @@ class MaskDataset(Dataset):
 
         if features_names is not None and len(features_names) != m.shape[1]:
             raise ValueError(
-                "m and outputs_names must have the same number of features"
+                "m and features_names must have the same number of features"
             )
 
         self._features_names: Optional[List[str]] = features_names
@@ -48,7 +64,7 @@ class MaskDataset(Dataset):
             Number of entries.
         """
         return self._m.size(0)
-    
+
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
         Returns the entries of indice(s) idx.
@@ -64,7 +80,7 @@ class MaskDataset(Dataset):
             Input and output entries.
         """
         return self._m[idx]
-    
+
     @property
     def m(self) -> Tensor:
         """
@@ -101,7 +117,7 @@ class MaskDataset(Dataset):
         Parameters
         ----------
         numpy : bool, optional
-            If `numpy` is True, the returned object will be numpy arrays.
+            If ``numpy`` is True, the returned object will be numpy arrays.
             Else, they will be torch tensors.
 
         Returns
@@ -116,17 +132,34 @@ class MaskDataset(Dataset):
 
     @staticmethod
     def from_pandas(df_m: pd.DataFrame) -> "MaskDataset":
+        """Converts a pandas DataFrame to a MaskDataset object.
+
+        Parameters
+        ----------
+        df_m : pd.DataFrame
+            DataFrame of the masked outputs.
+
+        Returns
+        -------
+        MaskDataset
+            associated MaskDataset object.
+        """
         return MaskDataset(
             df_m.values,
             df_m.columns.to_list(),
         )
 
     def to_pandas(self) -> pd.DataFrame:
+        """Converts the mask dataset to two pandas DataFrames
+
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe of the mask on the output y.
+        """
         return pd.DataFrame(self.m, columns=self._features_names)
 
-    def join(
-        self: "MaskDataset", other: "MaskDataset"
-    ) -> "MaskDataset":
+    def join(self: "MaskDataset", other: "MaskDataset") -> "MaskDataset":
         """
         Returns the union of two datasets. Data are copied.
 
@@ -146,9 +179,7 @@ class MaskDataset(Dataset):
         y = np.concatenate((y1, y2), axis=0)
         return MaskDataset(x, y)
 
-    def substract(
-        self: "MaskDataset", other: "MaskSubset"
-    ) -> "MaskDataset":
+    def substract(self: "MaskDataset", other: "MaskSubset") -> "MaskDataset":
         """
         Returns the substraction of two datasets. Data are copied.
 
@@ -173,16 +204,28 @@ class MaskDataset(Dataset):
         # Algo can be improved.
         return MaskDataset(self, new_indices)
 
-    def stats(self) -> Tuple[
-        Dict[str, np.ndarray],
+    def stats(self) -> Dict[str, np.ndarray]:
+        """Computes the proportion of masked entries for each output column.
+
+        Returns
+        -------
         Dict[str, np.ndarray]
-    ]:
+            dictionary of masked entry proportion for each output feature.
+        """
         return {
             "frac": self.m.mean(axis=0).numpy(),
         }
 
     def save(self, filename: str, path: Optional[str] = None) -> None:
-        """TODO"""
+        """saves the dataset to a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to be created.
+        path : Optional[str], optional
+            path to the file to be created, by default None
+        """
         if path is not None:
             filename = os.path.join(path, filename)
         filename = os.path.splitext(filename)[0]
@@ -191,7 +234,20 @@ class MaskDataset(Dataset):
 
     @staticmethod
     def load(filename: str, path: Optional[str] = None) -> "MaskDataset":
-        """TODO"""
+        """loads a mask dataset from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to be read.
+        path : Optional[str], optional
+            path to the file to be read, by default None.
+
+        Returns
+        -------
+        MaskDataset
+            loaded mask dataset.
+        """
         if path is not None:
             filename = os.path.join(path, filename)
         filename = os.path.splitext(filename)[0]
@@ -205,9 +261,8 @@ class MaskSubset(MaskDataset):
 
     def __init__(self, dataset: MaskDataset, indices: Sequence[int]):
         """
-        Initializer.
 
-        Parameters
+        Attributes
         ----------
         dataset : MaskDataset
             Dataset from which entries are extracted.
@@ -243,7 +298,7 @@ class MaskSubset(MaskDataset):
             Input and output entries.
         """
         return self._dataset[self._indices[idx]]
-    
+
     @property
     def m(self) -> Tensor:
         """

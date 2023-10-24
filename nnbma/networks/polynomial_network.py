@@ -1,7 +1,6 @@
 from typing import Optional, Sequence, Union
 
 from numpy import ndarray
-
 from torch import Tensor
 
 from ..layers import PolynomialExpansion
@@ -63,9 +62,7 @@ class PolynomialNetwork(NeuralNetwork):
                 f"The number of polynomial features ({self.n_poly_features}) does not match the input layer of the subnetwork ({subnetwork.input_features[0]})."
             )
 
-        self.poly = PolynomialExpansion(
-            input_features, order, self.device
-        )
+        self.poly = PolynomialExpansion(input_features, order, self.device)
         self.subnetwork = subnetwork
 
     def forward(self, x: Tensor) -> Tensor:
@@ -85,7 +82,7 @@ class PolynomialNetwork(NeuralNetwork):
         y_hat = self.poly(x)
         y_hat = self.subnetwork(y_hat)
         return y_hat
-    
+
     def update_standardization(self, x: Union[Tensor, ndarray]) -> None:
         """
         Computes the mean and the standard deviation of the output of the polynomial expansion such that the expanded inputs are standardized.

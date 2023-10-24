@@ -13,9 +13,8 @@ from tqdm import tqdm
 from nnbma.dataset import MaskDataset, MaskSubset, RegressionDataset, RegressionSubset
 from nnbma.networks import NeuralNetwork
 
-from .loss_functions import MaskedLossFunction, MaskOverlay, EvolutiveLossFunction
-
 from .batch_scheduler import BatchScheduler
+from .loss_functions import EvolutiveLossFunction, MaskedLossFunction, MaskOverlay
 
 __all__ = [
     "LearningParameters",
@@ -97,7 +96,9 @@ def learning_procedure(
     model: NeuralNetwork,
     dataset: Union[RegressionDataset, Tuple[RegressionDataset, RegressionDataset]],
     learning_parameters: Union[LearningParameters, List[LearningParameters]],
-    mask_dataset: Union[MaskDataset, Tuple[MaskDataset, MaskDataset], None, Tuple[None, None]] = None,
+    mask_dataset: Union[
+        MaskDataset, Tuple[MaskDataset, MaskDataset], None, Tuple[None, None]
+    ] = None,
     train_samples: Optional[Sequence] = None,
     val_samples: Optional[Sequence] = None,
     val_frac: Optional[float] = None,
@@ -182,7 +183,6 @@ def learning_procedure(
         random.seed(seed)
 
     if isinstance(dataset, RegressionDataset):
-
         if train_samples is not None and val_samples is not None:
             pass
 
@@ -258,14 +258,13 @@ def learning_procedure(
     bs = []
 
     for learning_parameter in learning_parameters:
-
         epochs = learning_parameter.epochs
         batch_size = learning_parameter.batch_size
         if batch_size is None:
             batch_size = len(train_set)
         if isinstance(batch_size, BatchScheduler):
             if batch_size.start is None:
-                batch_size.start = len(train_set) # TODO ?
+                batch_size.start = len(train_set)  # TODO ?
             if batch_size.stop is None:
                 batch_size.stop = len(train_set)
         optimizer = learning_parameter.optimizer
@@ -280,7 +279,7 @@ def learning_procedure(
             )
 
         # Dataloaders
-        
+
         if isinstance(batch_size, BatchScheduler):
             _batch_size = batch_size.get_batch_size()
         else:
@@ -322,7 +321,6 @@ def learning_procedure(
         pbar_epoch.set_description("Epoch")
 
         for epoch in pbar_epoch:
-
             # Dataloader
             if isinstance(batch_size, BatchScheduler):
                 _batch_size = batch_size.get_batch_size()
@@ -336,7 +334,7 @@ def learning_procedure(
                     drop_last=True,
                     pin_memory=True,
                 )
-            
+
             n_batchs_train = len(dataloader_train)
 
             lr.append(optimizer.param_groups[0]["lr"])

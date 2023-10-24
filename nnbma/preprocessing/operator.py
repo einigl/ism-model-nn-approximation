@@ -1,9 +1,10 @@
 from enum import Enum
-from typing import List, Callable
+from typing import Callable, List
 
 import numpy as np
 
-__all__ = ['Operator', 'ColumnwiseOperator', 'SequentialOperator']
+__all__ = ["Operator", "ColumnwiseOperator", "SequentialOperator"]
+
 
 class Operator:
     """TODO"""
@@ -16,6 +17,7 @@ class Operator:
 
     def __str__(self) -> str:
         return f"Operator: {self.fun.__name__}"
+
 
 class ColumnwiseOperator(Operator):
     """TODO"""
@@ -30,6 +32,7 @@ class ColumnwiseOperator(Operator):
     def __str__(self) -> str:
         ops_str = [op.__name__ for op in self.ops]
         return f"ColumnwiseOperator: {ops_str}"
+
 
 class SequentialOperator(Operator):
     """TODO"""

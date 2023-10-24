@@ -7,10 +7,15 @@ from warnings import warn
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import Colorbar
 from matplotlib.colors import LogNorm
-from matplotlib.cm import ScalarMappable
-from matplotlib.ticker import MultipleLocator, FuncFormatter, FixedLocator, NullFormatter
+from matplotlib.ticker import (
+    FixedLocator,
+    FuncFormatter,
+    MultipleLocator,
+    NullFormatter,
+)
 
 from nnbma.networks import NeuralNetwork
 
@@ -22,13 +27,14 @@ __all__ = ["LaTeX", "Plotter"]
 class LaTeX:
     """
     Class to handle activation of the plotting with latex if available on the current installation.
-    
+
     Example:
     ```
     with LaTeX():
         # Do some matplotlib stuff
     ```
     """
+
     activate: bool
     previous_mode: bool
 
@@ -200,10 +206,7 @@ class Plotter:
         if not isinstance(latex, bool):
             raise TypeError(f"latex must be a bool, not {type(latex)}")
 
-    def _parse_csv(
-            self,
-            csv_file: Union[str, pd.DataFrame]
-        ) -> pd.DataFrame:
+    def _parse_csv(self, csv_file: Union[str, pd.DataFrame]) -> pd.DataFrame:
         if isinstance(csv_file, str):
             df = pd.read_csv(csv_file)
         elif isinstance(csv_file, pd.DataFrame):
@@ -253,12 +256,11 @@ class Plotter:
             raise ValueError(
                 "Grid or regression must not be True simultaneously with errors"
             )
-        
+
         # Plot profiles
         x_op = lambda t: t
         y_op = lambda t: 10**t
         for idx, line in enumerate(lines_to_plot):
-
             m = df_mask[line].values.astype(bool)
 
             if errors:
@@ -307,9 +309,10 @@ class Plotter:
 
                 if regression:
                     lines = plt.semilogy(
-                        x_op(X[:, k_none]), y_op(y[:, idx]),
+                        x_op(X[:, k_none]),
+                        y_op(y[:, idx]),
                         label=line_to_latex(line),
-                        color=lines[0].get_color() if grid else None
+                        color=lines[0].get_color() if grid else None,
                     )
 
                 plt.scatter(
@@ -472,7 +475,7 @@ class Plotter:
                         np.log10(self.grid[self.inputs_names[k]][-1]),
                         n_samples,
                     )
-                    
+
                 else:
                     X[:, k] = np.linspace(
                         self.grid[self.inputs_names[k]][0],
@@ -493,7 +496,9 @@ class Plotter:
                 lines_to_plot
             )  # Restrict only to line we want
             y = self._model.evaluate(X, transform_inputs=True, transform_outputs=True)
-            y_grid = self._model.evaluate(X_grid, transform_inputs=True, transform_outputs=True)
+            y_grid = self._model.evaluate(
+                X_grid, transform_inputs=True, transform_outputs=True
+            )
             self._model.restrict_to_output_subset(
                 previous_output_subset
             )  # Restore the previous restriction
@@ -554,7 +559,7 @@ class Plotter:
                 )
                 plt.tick_params(
                     axis="x", which="both", bottom=True, top=False, labelbottom=True
-                ) # TODO bottom=False, labelbottom=False
+                )  # TODO bottom=False, labelbottom=False
                 plt.xlabel(None)
 
                 plt.subplot(2, 1, 2)
@@ -638,21 +643,27 @@ class Plotter:
     ):
         ## Locators for Y-axis
         # set tickmarks at multiples of 1.
-        majorLocator = MultipleLocator(1.)
+        majorLocator = MultipleLocator(1.0)
         lim = (
             min(ax.get_xlim()[0], ax.get_ylim()[0]),
-            max(ax.get_xlim()[1], ax.get_ylim()[1])
+            max(ax.get_xlim()[1], ax.get_ylim()[1]),
         )
         ra = np.array(
-            [[n+(1.+np.log10(i)) for n in range(int(lim[0])-1, int(lim[1])+1)] for i in [2,3,4,5,6,7,8,9][::-1]]
+            [
+                [
+                    n + (1.0 + np.log10(i))
+                    for n in range(int(lim[0]) - 1, int(lim[1]) + 1)
+                ]
+                for i in [2, 3, 4, 5, 6, 7, 8, 9][::-1]
+            ]
         ).flatten()
         minorLocator = FixedLocator(ra)
         # majorFormatter= FuncFormatter(
         #     lambda x,p: "{:.1e}".format(10**x)
-        # ) 
-        majorFormatter= FuncFormatter(
-            lambda x,p: r"$10^{"+"{x:d}".format(x=int(x))+r"}$"
-        ) 
+        # )
+        majorFormatter = FuncFormatter(
+            lambda x, p: r"$10^{" + "{x:d}".format(x=int(x)) + r"}$"
+        )
 
         ax.minorticks_on()
 
@@ -689,7 +700,6 @@ class Plotter:
         pointsize: int,
         cmap: str,
     ) -> Colorbar:
-
         if (grid and regression) or (grid and errors) or (regression and errors):
             raise ValueError(
                 "Only one argument among 'grid', 'regression' and 'errors' must be True"
@@ -723,7 +733,6 @@ class Plotter:
             vmin, vmax = err[m & (err > 0)].min(), err[m & (err > 0)].max()
 
         elif grid or regression:
-
             if grid:
                 _y = y_op(df[line_to_plot].values)
                 vmin = _y[_y > 0].min()
@@ -761,20 +770,20 @@ class Plotter:
 
                 if contour:
                     Z = np.log10(_y)
-                    max_levels = 20 # Can be modified
-                    resolution = 1 # decimal digit
+                    max_levels = 20  # Can be modified
+                    resolution = 1  # decimal digit
                     _min = np.min(np.around(Z, resolution))
                     _max = np.max(np.around(Z, resolution))
                     n_levels = int((_max - _min) * 10**resolution)
-                    levels = _min + 10**(-resolution) * np.arange(n_levels)
-                    levels = levels[::int(np.ceil(n_levels / max_levels))]
+                    levels = _min + 10 ** (-resolution) * np.arange(n_levels)
+                    levels = levels[:: int(np.ceil(n_levels / max_levels))]
                     cs = plt.contour(
                         np.log10(x1),
                         np.log10(x2),
                         Z,
                         levels=levels,
                         cmap=cmap,
-                        extent=[x1.min(), x1.max(), x2.min(), x2.max()]
+                        extent=[x1.min(), x1.max(), x2.min(), x2.max()],
                     )
                     plt.clabel(cs, cs.levels, fmt=lambda x: f"{x:.1f}", fontsize=8)
 
@@ -826,7 +835,7 @@ class Plotter:
                 facecolors="None",
                 edgecolors="red",
                 marker="s",
-                s=round(5*pointsize),
+                s=round(5 * pointsize),
                 linewidth=1,
             )
             _h1 = np.array([_h for _h, _m in zip(h1, m) if _m == 0])
@@ -836,7 +845,7 @@ class Plotter:
                 x_op(_h2),
                 facecolors="None",
                 edgecolors="red",
-                s=round(5*pointsize),
+                s=round(5 * pointsize),
                 linewidth=1,
             )
         elif regression:
@@ -856,9 +865,7 @@ class Plotter:
                 plt.yscale("log")
         else:
             self._mimic_log_axes(
-                plt.gca(),
-                self._inputs_scales[k_none_1],
-                self._inputs_scales[k_none_2]
+                plt.gca(), self._inputs_scales[k_none_1], self._inputs_scales[k_none_2]
             )
             pass
 
@@ -913,7 +920,7 @@ class Plotter:
         latex: bool = True,
         fontsize: int = 10,
         pointsize: int = 50,
-        cmap: Optional[str] = None
+        cmap: Optional[str] = None,
     ) -> List[Colorbar]:
         """
         Only one variable among P, Avmax, radm and angle has to be null.
@@ -1045,7 +1052,9 @@ class Plotter:
             )  # Restrict only to line we want
             if regression:
                 y = (
-                    self._model.evaluate(X, transform_inputs=True, transform_outputs=True)
+                    self._model.evaluate(
+                        X, transform_inputs=True, transform_outputs=True
+                    )
                     if regression
                     else None
                 )

@@ -1,20 +1,23 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "meudon-pdr", "data"))
+sys.path.append(
+    os.path.join(os.path.dirname(__file__), "..", "..", "meudon-pdr", "data")
+)
 
 import json
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from helpers.lines import filter_molecules
 
 from nnbma.dataset import MaskDataset, RegressionDataset
 from nnbma.preprocessing import (
+    ColumnwiseOperator,
     InverseNormalizer,
     Normalizer,
     NormTypes,
-    ColumnwiseOperator,
     Operator,
     SequentialOperator,
     id,
@@ -22,11 +25,13 @@ from nnbma.preprocessing import (
     pow10,
 )
 
-from helpers.lines import filter_molecules
-
-
 DATA_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "meudon-pdr", "data", "P17r2101E20_all_stat_files_{}.pkl"
+    os.path.dirname(__file__),
+    "..",
+    "..",
+    "meudon-pdr",
+    "data",
+    "P17r2101E20_all_stat_files_{}.pkl",
 )
 
 
@@ -52,7 +57,6 @@ def load_data_pandas(
 ) -> Tuple[
     pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame
 ]:
-
     # Loading
     df_train: pd.DataFrame = pd.read_pickle(DATA_PATH.format("train"))
     df_val: pd.DataFrame = pd.read_pickle(DATA_PATH.format("test"))
@@ -154,6 +158,7 @@ def prepare_data(
 
     return dataset_train, dataset_val, dataset_mask_train, dataset_mask_val
 
+
 def prepare_clusters(
     n_clusters: int,
     lines: Optional[Union[str, List[str]]] = None,
@@ -245,10 +250,10 @@ def normalization_operators(
 ) -> Tuple[Normalizer, InverseNormalizer]:
     return Normalizer(df, norm_type), InverseNormalizer(df, norm_type)
 
+
 def build_data_transformers(
     dataset_train: RegressionDataset,
 ) -> Tuple[Operator, Operator, Operator, Operator]:
-
     # x operators
 
     scale_operator_x = ColumnwiseOperator(

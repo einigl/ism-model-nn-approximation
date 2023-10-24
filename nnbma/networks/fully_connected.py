@@ -4,7 +4,6 @@ from torch import Tensor, nn
 
 from ..layers import RestrictableLinear
 from ..preprocessing import Operator
-
 from .neural_network import NeuralNetwork
 
 __all__ = ["FullyConnected"]
@@ -113,7 +112,7 @@ class FullyConnected(NeuralNetwork):
             Output tensor
         """
         y_hat = x.clone()
-        
+
         is1d = y_hat.ndim == 1
         if is1d:
             y_hat = y_hat.unsqueeze(0)

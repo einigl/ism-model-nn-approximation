@@ -3,13 +3,13 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
-from typing import List, Dict
+from typing import Dict, List
+
+from helpers.preprocessing import build_data_transformers, prepare_data
 
 from nnbma.dataset import MaskDataset, RegressionDataset
 from nnbma.learning import LearningParameters, learning_procedure
 from nnbma.networks import NeuralNetwork
-
-from helpers.preprocessing import prepare_data, build_data_transformers
 
 
 def procedure(
@@ -17,7 +17,7 @@ def procedure(
     model: NeuralNetwork,
     learning_params: LearningParameters,
     mask: bool,
-    verbose: bool=True,
+    verbose: bool = True,
 ) -> Dict[str, object]:
     """TODO"""
 

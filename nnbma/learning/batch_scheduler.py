@@ -8,7 +8,6 @@ __all__ = [
 
 
 class BatchScheduler(ABC):
-
     epoch: int
 
     def __init__(self):
@@ -24,8 +23,8 @@ class BatchScheduler(ABC):
     def get_batch_size(self) -> int:
         pass
 
-class ConstantBatch():
 
+class ConstantBatch:
     batch_size: int
 
     def __init__(self, batch_size: int):
@@ -35,8 +34,8 @@ class ConstantBatch():
     def get_batch_size(self) -> int:
         return self.get_batch_size
 
-class LinearBatchScheduler(BatchScheduler):
 
+class LinearBatchScheduler(BatchScheduler):
     start: int
     stop: int
     n_epochs: int
@@ -49,10 +48,10 @@ class LinearBatchScheduler(BatchScheduler):
 
     def get_batch_size(self) -> int:
         slope = (self.stop - self.start) / self.n_epochs
-        return round( (self.epoch - 1) * slope + self.start )
-    
-class ExponentialBatchScheduler(BatchScheduler):
+        return round((self.epoch - 1) * slope + self.start)
 
+
+class ExponentialBatchScheduler(BatchScheduler):
     start: int
     stop: int
     n_epochs: int
@@ -64,5 +63,5 @@ class ExponentialBatchScheduler(BatchScheduler):
         self.n_epochs = n_epochs
 
     def get_batch_size(self) -> int:
-        factor = (self.stop / self.start)**(1/self.n_epochs)
-        return round( factor**(self.epoch - 1) * self.start )
+        factor = (self.stop / self.start) ** (1 / self.n_epochs)
+        return round(factor ** (self.epoch - 1) * self.start)

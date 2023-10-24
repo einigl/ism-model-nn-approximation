@@ -1,6 +1,16 @@
 import os
 import pickle
-from typing import Callable, List, Dict, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    overload,
+)
 
 import numpy as np
 import pandas as pd
@@ -20,17 +30,16 @@ class RegressionDataset(Dataset):
         inputs_names: Optional[List[str]] = None,
         outputs_names: Optional[List[str]] = None,
     ):
-        """
-        Initializer.
+        r"""
 
-        Parameters
+        Attributes
         ----------
         x : numpy.ndarray
             Array containing the input features of the regression model.
-            x must be of shape N x I where N is the number of entries and I the number of input features.
+            x must be of shape :math:`N \times I` where :math:`N` is the number of entries and :math:`I` the number of input features.
         y : numpy.ndarray
             Array containing the output features of the regression model.
-            y must be of shape N x O where N is the number of entries and O the number of output features.
+            y must be of shape :math:`N \times O` where :math:`N` is the number of entries and :math:`O` the number of output features.
         """
         super().__init__()
 
@@ -60,10 +69,10 @@ class RegressionDataset(Dataset):
             Number of entries.
         """
         return self._x.size(0)
-    
+
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
-        Returns the entries of indice(s) idx.
+        Returns the entries of index/indices idx.
 
         Parameters
         ----------
@@ -76,14 +85,14 @@ class RegressionDataset(Dataset):
             Input and output entries.
         """
         return self._x[idx], self._y[idx]
-    
+
     @property
     def x(self) -> Tensor:
         """
         Input tensor.
         """
         return self._x
-    
+
     @property
     def y(self) -> Tensor:
         """
@@ -206,6 +215,20 @@ class RegressionDataset(Dataset):
 
     @staticmethod
     def from_pandas(df_x: pd.DataFrame, df_y: pd.DataFrame) -> "RegressionDataset":
+        """Converts two pandas DataFrames to a RegressionDataset object.
+
+        Parameters
+        ----------
+        df_x : pd.DataFrame
+            DataFrame of the inputs.
+        df_y : pd.DataFrame
+            DataFrame of the outputs.
+
+        Returns
+        -------
+        RegressionDataset
+            associated RegressionDataset object.
+        """
         return RegressionDataset(
             df_x.values,
             df_y.values,
@@ -214,6 +237,13 @@ class RegressionDataset(Dataset):
         )
 
     def to_pandas(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Converts the dataset to two pandas DataFrames
+
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            Dataframes of the input x and output y, respectively.
+        """
         return pd.DataFrame(self.x, columns=self._inputs_names), pd.DataFrame(
             self.y, columns=self._outputs_names
         )
@@ -267,10 +297,14 @@ class RegressionDataset(Dataset):
         # Algo can be improved.
         return RegressionSubset(self, new_indices)
 
-    def stats(self) -> Tuple[
-        Dict[str, np.ndarray],
-        Dict[str, np.ndarray]
-    ]:
+    def stats(self) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+        """Provides a few statistics on the dataset (the mean, the standard deviation, the min and the max for each column).
+
+        Returns
+        -------
+        Tuple[ Dict[str, np.ndarray], Dict[str, np.ndarray] ]
+            Tuple of dictionaries, each containing the mean, the standard deviation, the min and the max for each column. The first dictionary corresponds to the input x and the second to the output y.
+        """
         return {
             "mean": self.x.mean(axis=0).numpy(),
             "std": self.x.std(axis=0).numpy(),
@@ -284,7 +318,15 @@ class RegressionDataset(Dataset):
         }
 
     def save(self, filename: str, path: Optional[str] = None) -> None:
-        """TODO"""
+        """saves the dataset to a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to be created.
+        path : Optional[str], optional
+            path to the file to be created, by default None
+        """
         if path is not None:
             filename = os.path.join(path, filename)
         filename = os.path.splitext(filename)[0]
@@ -293,7 +335,20 @@ class RegressionDataset(Dataset):
 
     @staticmethod
     def load(filename: str, path: Optional[str] = None) -> "RegressionDataset":
-        """TODO"""
+        """loads a regression dataset from a pickle file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to be read.
+        path : Optional[str], optional
+            path to the file to be read, by default None.
+
+        Returns
+        -------
+        RegressionDataset
+            loaded regression dataset.
+        """
         if path is not None:
             filename = os.path.join(path, filename)
         filename = os.path.splitext(filename)[0]
@@ -307,9 +362,8 @@ class RegressionSubset(RegressionDataset):
 
     def __init__(self, dataset: RegressionDataset, indices: Sequence[int]):
         """
-        Initializer.
 
-        Parameters
+        Attributes
         ----------
         dataset : RegressionDataset
             Dataset from which entries are extracted.
@@ -352,7 +406,7 @@ class RegressionSubset(RegressionDataset):
         Input tensor.
         """
         return self._dataset._x[self._indices]
-    
+
     @property
     def y(self) -> Tensor:
         """
