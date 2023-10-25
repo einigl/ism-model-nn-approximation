@@ -12,18 +12,18 @@ nnbma.preprocessing.base module
    :undoc-members:
    :show-inheritance:
 
-nnbma.preprocessing.normalization module
-----------------------------------------
-
-.. automodule:: nnbma.preprocessing.normalization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 nnbma.preprocessing.operator module
 -----------------------------------
 
 .. automodule:: nnbma.preprocessing.operator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+nnbma.preprocessing.normalization module
+----------------------------------------
+
+.. automodule:: nnbma.preprocessing.normalization
    :members:
    :undoc-members:
    :show-inheritance:

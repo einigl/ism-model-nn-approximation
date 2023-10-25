@@ -4,18 +4,10 @@ nnbma.networks package
 Submodules
 ----------
 
-nnbma.networks.densely\_connected module
-----------------------------------------
+nnbma.networks.neural\_network module
+-------------------------------------
 
-.. automodule:: nnbma.networks.densely_connected
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-nnbma.networks.embedding\_network module
-----------------------------------------
-
-.. automodule:: nnbma.networks.embedding_network
+.. automodule:: nnbma.networks.neural_network
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,18 +20,10 @@ nnbma.networks.fully\_connected module
    :undoc-members:
    :show-inheritance:
 
-nnbma.networks.merging\_network module
---------------------------------------
+nnbma.networks.densely\_connected module
+----------------------------------------
 
-.. automodule:: nnbma.networks.merging_network
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-nnbma.networks.neural\_network module
--------------------------------------
-
-.. automodule:: nnbma.networks.neural_network
+.. automodule:: nnbma.networks.densely_connected
    :members:
    :undoc-members:
    :show-inheritance:
@@ -48,6 +32,22 @@ nnbma.networks.polynomial\_network module
 -----------------------------------------
 
 .. automodule:: nnbma.networks.polynomial_network
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+nnbma.networks.embedding\_network module
+----------------------------------------
+
+.. automodule:: nnbma.networks.embedding_network
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+nnbma.networks.merging\_network module
+--------------------------------------
+
+.. automodule:: nnbma.networks.merging_network
    :members:
    :undoc-members:
    :show-inheritance:
