@@ -8,13 +8,14 @@ __all__ = ["AdditionalModule"]
 
 
 class AdditionalModule(nn.Module, ABC):
-    """
+    r"""
     Additional module.
     """
 
-    input_features: Optional[int]
-    output_features: Optional[int]
-    device: str
+    # list of attributes:
+    # input_features: Optional[int]
+    # output_features: Optional[int]
+    # device: str
 
     def __init__(
         self,
@@ -22,7 +23,7 @@ class AdditionalModule(nn.Module, ABC):
         output_features: Optional[int],
         device: str = "cpu",
     ):
-        """
+        r"""
 
         Parameters
         ----------
@@ -41,18 +42,18 @@ class AdditionalModule(nn.Module, ABC):
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Evaluates the associated pytorch function.
 
         Parameters
         ----------
         x : Tensor
-            Input tensor
+            Input tensor of shape (?, ``input_features``).
 
         Returns
         -------
         Tensor
-            Output tensor
+            Output tensor of shape (?, ``output_features``).
         """
 
     def __str__(self) -> str:

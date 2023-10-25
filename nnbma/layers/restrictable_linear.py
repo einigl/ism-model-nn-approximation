@@ -33,7 +33,7 @@ class RestrictableLinear(nn.Linear):
         device : Optional[str], optional
             device on which the graph should be defined (cpu or cuda), by default None
         dtype : _type_, optional
-            _description_, by default None
+            dtype to be used in computations, by default None
         outputs_names : Optional[Sequence[str]], optional
             sequence of output names, by default None
         """
@@ -45,29 +45,29 @@ class RestrictableLinear(nn.Linear):
         self.subbias = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Evaluates the layer, restricted or not depending of past settings.
+        """Evaluates the linear layer, restricted or not depending of past settings.
 
         Parameters
         ----------
         x : torch.Tensor
-            input tensor
+            input tensor of shape (?, ``in_features``)
 
         Returns
         -------
         torch.Tensor
-            output tensor
+            output tensor. This tensor has shape (?, ``out_features``) if the full output set is considered, and with less outputs features in case of restricted output.
         """
         if self.training:
             return nn.functional.linear(x, self.weight, self.bias)
         return nn.functional.linear(x, self.subweight, self.subbias)
 
     def restrict_to_output_subset(self, indices: Sequence[int]) -> None:
-        """Restricts the output to a subset
+        """Restricts the output to an output subset.
 
         Parameters
         ----------
         indices : Sequence[int]
-            index subset to predict
+            index subset to predict.
 
         Raises
         ------
@@ -84,6 +84,19 @@ class RestrictableLinear(nn.Linear):
             self.subbias = self.bias.data[indices]
 
     def train(self, mode: bool = True) -> "RestrictableLinear":
+        r"""Sets the object in train mode if ``mode==True``and in eval mode else.
+
+
+        Parameters
+        ----------
+        mode : bool, optional
+            wether the layer is to be set in train mode (``True``) or eval mode (``False``), by default ``True``.
+
+        Returns
+        -------
+        RestrictableLinear
+            The updated object.
+        """
         super().train(mode)
         if mode:
             self.subweight = None

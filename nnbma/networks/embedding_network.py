@@ -17,22 +17,13 @@ __all__ = ["EmbeddingNetwork"]
 
 
 class EmbeddingNetwork(NeuralNetwork):
-    """
-    Embedding neural network.
+    r"""Embedding neural network.
 
-    Attributes
-    ----------
-    subnetwork : NeuralNetork
-        Base network.
-    preprocessing: Optional[nn.Module]
-        PyTorch operation to apply before `subnetwork`.
-    postprocessing: Optional[nn.Module]
-        PyTorch operation to apply after `subnetwork`.
     """
 
-    subnetwork: NeuralNetwork
-    preprocessing: nn.Sequential
-    postprocessing: nn.Sequential
+    # subnetwork: NeuralNetwork
+    # preprocessing: nn.Sequential
+    # postprocessing: nn.Sequential
 
     def __init__(
         self,
@@ -46,16 +37,32 @@ class EmbeddingNetwork(NeuralNetwork):
         device: Optional[str] = None,
     ):
         """
-        Initializer.
 
         Parameters
         ----------
-        subnetwork: NeuralNetork
+        subnetwork : NeuralNetwork
             Base network.
-        preprocessing: None | AdditionalModule | List[AdditionalModule]
-            PyTorch operation to apply before `subnetwork`.
-        postprocessing: None | AdditionalModule | List[AdditionalModule]
-            PyTorch operation to apply after `subnetwork`.
+        preprocessing : Union[None, AdditionalModule, List[AdditionalModule]], optional
+            PyTorch operation to apply before ``subnetwork``, by default None.
+        postprocessing : Union[None, AdditionalModule, List[AdditionalModule]], optional
+            PyTorch operation to apply after ``subnetwork``, by default None.
+        inputs_names : Optional[Sequence[str]], optional
+            List of inputs names. None if the names have not been specified. By default None.
+        outputs_names : Optional[Sequence[str]], optional
+            List of outputs names. None if the names have not been specified. By default None.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing, by default None.
+        outputs_transformer : Optional[Operator], optional
+            Transformation applied to the outputs after processing, by default None.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
+
+        Raises
+        ------
+        TypeError
+            All elements of preprocessing must be instances of AdditionalModule.
+        TypeError
+            All elements of postprocessing must be instances of AdditionalModule.
         """
         if preprocessing is None:
             preprocessing = []
@@ -114,19 +121,6 @@ class EmbeddingNetwork(NeuralNetwork):
         self.postprocessing = nn.Sequential(*postprocessing)
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Computes the output of the network for a batch of inputs `x`.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        """
         y = self.preprocessing(x)
         y = self.subnetwork(y)
         y = self.postprocessing(y)

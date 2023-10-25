@@ -10,13 +10,7 @@ __all__ = ["FullyConnected"]
 
 
 class FullyConnected(NeuralNetwork):
-    """
-    Fully connected neural network.
-
-    Attributes
-    ----------
-    att : type
-        Description.
+    r"""Standard fully connected neural network.
     """
 
     def __init__(
@@ -32,12 +26,27 @@ class FullyConnected(NeuralNetwork):
         last_restrictable: bool = True,
     ):
         """
-        Initializer.
 
         Parameters
         ----------
-        param : type
-            Description.
+        layers_sizes : Iterable[int]
+            list of number of neurons per layer. The first value corresponds to the dimension of the input layer, and the last value to the dimension of the output layer.
+        activation : nn.Module
+            activation function.
+        batch_norm : bool, optional
+            wether to use batch normalization during training, by default ``False``.
+        inputs_names : Optional[Sequence[str]], optional
+            List of inputs names. None if the names have not been specified. By default None.
+        outputs_names : Optional[Sequence[str]], optional
+            List of outputs names. None if the names have not been specified. By default None.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing, by default None.
+        outputs_transformer : Optional[Operator], optional
+            Transformation applied to the outputs after processing, by default None.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
+        last_restrictable : bool, optional
+            wether the last layer is to be a RestrictableLinear layer, by default ``True``.
         """
         super().__init__(
             layers_sizes[0],
@@ -98,19 +107,6 @@ class FullyConnected(NeuralNetwork):
             )
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Computes the output of the network for a batch of inputs `x`.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        """
         y_hat = x.clone()
 
         is1d = y_hat.ndim == 1
@@ -133,19 +129,6 @@ class FullyConnected(NeuralNetwork):
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
     ) -> None:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
         super().restrict_to_output_subset(output_subset)
         if self.last_restrictable:
             self.output_layer.restrict_to_output_subset(

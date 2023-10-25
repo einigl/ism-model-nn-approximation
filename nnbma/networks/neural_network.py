@@ -18,36 +18,17 @@ __all__ = ["NeuralNetwork"]
 
 
 class NeuralNetwork(nn.Module, ABC):
-    """
-    Neural network abstract class.
+    r"""Neural network abstract class."""
 
-    Attributes
-    ----------
-    input_features : int
-        Dimension of input vector.
-    output_features : int
-        Dimension of output vector.
-    inputs_names: List[str] | None
-        List of inputs names. None if the names have not been specified.
-    outputs_names: List[str] | None
-        List of outputs names. None if the names have not been specified.
-    inputs_transformer : Operator | None
-        Transformation applied to the inputs before processing.
-    outputs_transformer: Operator | None
-        Transformation applied to the outputs after processing.
-    device : str
-        Device used ("cpu" or "cuda").
-    """
-
-    input_features: int
-    output_features: int
-    inputs_names: Optional[List[str]] = None
-    outputs_names: Optional[List[str]] = None
-    inputs_transformer: Optional[Operator] = None
-    outputs_transformer: Optional[Operator] = None
-    device: str
-    current_output_subset: List[str]
-    current_output_subset_indices: List[int]
+    # input_features: int
+    # output_features: int
+    # inputs_names: Optional[List[str]] = None
+    # outputs_names: Optional[List[str]] = None
+    # inputs_transformer: Optional[Operator] = None
+    # outputs_transformer: Optional[Operator] = None
+    # device: str
+    # current_output_subset: List[str]
+    # current_output_subset_indices: List[int]
 
     def __init__(
         self,
@@ -59,13 +40,35 @@ class NeuralNetwork(nn.Module, ABC):
         outputs_transformer: Optional[Operator] = None,
         device: Optional[str] = None,
     ):
-        """
-        Initializer.
+        r"""
 
         Parameters
         ----------
-        param : type
-            Description.
+        input_features : int
+            Dimension of input vector.
+        output_features : int
+            Dimension of output vector.
+        inputs_names: Optional[List[str]], optional
+            List of inputs names. None if the names have not been specified.
+        outputs_names: Optional[List[str]], optional
+            List of outputs names. None if the names have not been specified.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing.
+        outputs_transformer: Optional[Operator], optional
+            Transformation applied to the outputs after processing.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
+
+        Raises
+        ------
+        ValueError
+            The length of ``inputs_names`` should equal ``input_features``.
+        ValueError
+            The length of ``outputs_names`` should equal ``output_features``.
+        ValueError
+            The list ``inputs_names`` must not have duplicates.
+        ValueError
+            The list ``outputs_names`` must not have duplicates.
         """
         super().__init__()
         self.input_features = input_features
@@ -103,6 +106,18 @@ class NeuralNetwork(nn.Module, ABC):
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        r"""Evaluates the neural network on an input ``x``.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            input tensor of shape (?, ``input_features``)
+
+        Returns
+        -------
+        torch.Tensor
+            output tensor of shape (?, ``output_features``)
+        """
         pass
 
     def set_device(self, device: str) -> None:
@@ -123,22 +138,28 @@ class NeuralNetwork(nn.Module, ABC):
         transform_inputs: bool = False,
         transform_outputs: bool = False,
     ) -> np.ndarray:
-        """
-        Process a batch of NumPy inputs.
+        r"""Evaluate the network on a batch of NumPy inputs.
 
         Parameters
         ----------
         x : ndarray
-            Batch of inputs. Must be of shape N x self.n_inputs, where N is an arbitrary batch size.
+            batch of inputs of shape (?, ``input_features``).
         transform_inputs : bool, optional
-            Specify if the data x has to be preprocessed (for instance standardized). If True, the preprocessing will be applied on the input data before being given to the network.
-        transform_inputs : bool, optional
-            Specify if the data x has to be postprocessed. If True, the postprocessing will be applied on the output data before being returned.
+            wether the input ``x`` are to be pre-processed.
+        transform_outputs : bool, optional
+            wether the predictions ``y`` are to be post-processed.
 
         Returns
         -------
         ndarray
-            Batch of outputs of shape N x self.n_ouputs, where N is the inputs batch size.
+            batch of outputs of shape (?, ``output_features``).
+
+        Raises
+        ------
+        ValueError
+            The ``transform_inputs`` argument cannot be ``True`` when the ``inputs_transformer`` attribute is None.
+        ValueError
+            The ``transform_outputs`` argument cannot be ``True`` when the ``outputs_transformer`` attribute is None.
         """
         if transform_inputs:
             if self.inputs_transformer is None:
@@ -172,18 +193,17 @@ class NeuralNetwork(nn.Module, ABC):
     def __call__(
         self, x: Union[torch.Tensor, np.ndarray]
     ) -> Union[torch.Tensor, np.ndarray]:
-        """
-        Process a batch of NumPy ndarray or PyTorch Tensor inputs.
+        r"""Process a batch of NumPy ndarray or PyTorch Tensor inputs.
 
         Parameters
         ----------
         x : ndarray | Tensor
-            Description.
+            batch of inputs of shape (?, ``input_features``).
 
         Returns
         -------
-        type
-            Description.
+        ndarray | Tensor
+            batch of outputs of shape (?, ``output_features``).
         """
         if isinstance(x, np.ndarray):
             return self.evaluate(x, False, False)
@@ -192,13 +212,12 @@ class NeuralNetwork(nn.Module, ABC):
                 return self.forward(x)
 
     def train(self, mode: bool = True) -> "NeuralNetwork":
-        """
-        Set the current mode of the network (train or eval).
+        r"""Set the current mode of the network (train or eval).
 
         Parameters
         ----------
         mode: bool, optional
-            If True, activate the training mode. If False, activate the evaluation mode. Default: True.
+            If ``True``, activate the training mode. If ``False``, activate the evaluation mode. Default: ``True``.
 
         Returns
         -------
@@ -214,13 +233,23 @@ class NeuralNetwork(nn.Module, ABC):
         self,
         output_subset: Optional[Union[List[str], List[int]]] = None,
     ) -> None:
-        """
-        Restricts network outputs to those contained in `output_subset`.
+        r"""Restricts network outputs to those contained in ``output_subset``.
 
         Parameters
         ----------
         output_subset : List[str] | List[int] | None, optional
-            .Network outputs required. If None, no restriction is applied. Default: None.
+            Network outputs required. If None, no restriction is applied. Default: None.
+
+        Raises
+        ------
+        PermissionError
+            The outputs cannot be restricted when Module is in train mode.
+        TypeError
+            The ``output_subset`` argument must be a list or None.
+        ValueError
+            The ``output_subset`` list must not be empty.
+        TypeError
+            The ``output_subset`` argument must be a list of int or a list of str.
         """
         if self.training:
             raise PermissionError(
@@ -249,8 +278,7 @@ class NeuralNetwork(nn.Module, ABC):
             raise TypeError("output_subset must be a list of int or a list of str")
 
     def _names_of_output_subset(self, output_subset: List[int]) -> List[str]:
-        """
-        Returns the names of outputs corresponding to the indices list `output_subset`.
+        r"""Returns the names of outputs corresponding to the indices list ``output_subset``.
 
         Parameters
         ----------
@@ -260,7 +288,7 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         List[str]
-            Names of outputs.
+            Names of associated outputs.
         """
         if not isinstance(output_subset, (list, tuple)):
             raise TypeError("output_subset must be a list")
@@ -273,8 +301,7 @@ class NeuralNetwork(nn.Module, ABC):
         return [self.outputs_names[k] for k in output_subset]
 
     def _indices_of_output_subset(self, output_subset: List[str]) -> List[int]:
-        """
-        Returns the indices of outputs corresponding to the names list `output_subset`.
+        r"""Returns the indices of outputs corresponding to the names list ``output_subset``.
 
         Parameters
         ----------
@@ -302,8 +329,9 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _check_if_sublist(seq: List, subseq: List) -> bool:
-        """
-        Returns True if all elements of `subseq` are also elements of `seq`. Else, return True. If `subseq` contains duplicates, the result will remain the same.
+        r"""Returns ``True`` if all elements of ``subseq`` are also elements of ``seq``.
+        Else, returns ``False``.
+        Duplicates in ``subseq`` do not affect the result.
 
         Parameters
         ----------
@@ -315,26 +343,25 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            Result.
+            wether all elements of ``subseq`` are also elements of ``seq``.
         """
         return set(subseq) <= set(seq)
 
     @staticmethod
     def _indices_of_sublist(seq: List, subseq: List) -> List[int]:
-        """
-        Returns the indices in `seq` of the elements of `subseq`. If `subseq` contains duplicates, the returned list will also contain duplicates.
+        r"""Returns the indices in ``seq`` of the elements of ``subseq``. If ``subseq`` contains duplicates, the returned list will also contain duplicates.
 
         Parameters
         ----------
         seq : List
             Reference list.
         subseq : List
-            List whose elements will be retrieved in `seq`.
+            List whose elements will be retrieved in ``seq``.
 
         Returns
         -------
         List[int]
-            Indices of elements of `subset` in `seq`.
+            Indices of elements of ``subset`` in ``seq``.
         """
         if not NeuralNetwork._check_if_sublist(seq, subseq):
             raise ValueError("subseq is not a sublist of seq")
@@ -342,10 +369,9 @@ class NeuralNetwork(nn.Module, ABC):
         return [index_dict[value] for value in subseq]  # Remark: the result is ordered
 
     def count_parameters(self, learnable_only: bool = True) -> int:
-        """
-        Returns the number of parameters of the module.
-        If `learnable_only` is True, then this function returns the number of parameters whose has a `requires_grad = True` property.
-        If `learnable_only` is False, then this function returns the number of parameters, independently to their `requires_grad` property.
+        r"""Returns the number of parameters of the module.
+        If ``learnable_only=True``, this function returns the number of parameters for which ``requires_grad=True``.
+        If ``learnable_only=False``, it returns the number of parameters, independently to their ``requires_grad`` property.
 
         Parameters
         ----------
@@ -369,14 +395,14 @@ class NeuralNetwork(nn.Module, ABC):
         learnable_only: bool = True,
         display: bool = False,
     ) -> Union[Tuple[int, Literal["B", "kB", "MB", "GB", "TB"]], str]:
-        """
-        Returns the number of parameters of the module.
-        If `learnable_only` is True, then this function returns the number of parameters whose has a `requires_grad = True` property.
-        If `learnable_only` is False, then this function returns the number of parameters, independently to their `requires_grad` property.
+        r"""Returns the number of parameters of the module.
+        If ``learnable_only=True``, this function returns the number of parameters for which ``requires_grad=True``.
+        If ``learnable_only=False``, it returns the number of parameters, independently to their ``requires_grad`` property.
 
         Parameters
         ----------
-            learnable_only (bool, optional): Indicates the the type of parameter to count. Defaults to True.
+        learnable_only (bool, optional)
+            Indicates the the type of parameter to count. Defaults to True.
 
         Returns
         -------
@@ -402,8 +428,26 @@ class NeuralNetwork(nn.Module, ABC):
                     return (size / v, u)
 
     def time(self, n: int, repeat: int) -> Tuple[float, float, float]:
-        """
-        Compute the evaluation time of the model for a batch of `n` inputs. Returns the average, min and max durations (in sec) over `repeat` iterations.
+        """Estimates the evaluation time of the model for a batch of ``n`` inputs. Returns the average, min and max durations (in seconds) over ``repeat`` iterations.
+
+        Parameters
+        ----------
+        n : int
+            batch size.
+        repeat : int
+            number of evaluations.
+
+        Returns
+        -------
+        Tuple[float, float, float]
+            average, min and max durations (in seconds)
+
+        Raises
+        ------
+        TypeError
+            The ``n`` argument must be an integer.
+        TypeError
+            The ``repeat`` argument must be an integer.
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be an integer, not {type(n)}")
@@ -424,8 +468,7 @@ class NeuralNetwork(nn.Module, ABC):
         module_path: Optional[str] = None,
         overwrite: bool = True,
     ) -> None:
-        """
-        Saves the network for future use.
+        r"""Saves the network for future use.
 
         Parameters
         ----------
@@ -434,7 +477,7 @@ class NeuralNetwork(nn.Module, ABC):
         module_path: str | None
             Path to the previous directory.
         overwrite: bool
-            If True, the save can overwrite a previous backup of the same name. If False, if such a backup exists, an error will be raised.
+            If ``True``, the save can overwrite a previous backup of the same name. If ``False``, an error will be raised if such a backup exists.
         """
         if module_path is not None and not os.path.isdir(module_path):
             os.mkdir(module_path)
@@ -466,8 +509,7 @@ class NeuralNetwork(nn.Module, ABC):
         module: nn.Module,
         path: str,
     ) -> None:
-        """
-        Make a recursive save of a PyTorch module. This makes it possible to deal with cases where some of the parameters of a network are themselves networks, in which case this method avoids duplicates in the backup and saves memory space.
+        r"""Make a recursive save of a PyTorch module. This makes it possible to deal with cases where some of the parameters of a network are themselves networks, in which case this method avoids duplicates in the backup and saves memory space.
 
         Parameters
         ----------
@@ -512,8 +554,7 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _needs_recursion(obj: object) -> bool:
-        """
-        Returns True of obj is an object that need to be saved recursively, else False.
+        r"""Returns ``True`` if ``obj`` is an object that need to be saved recursively, else ``False``.
 
         Parameters
         ----------
@@ -523,14 +564,13 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            True if `obj` needs to be save recursively, else False.
+            wether ``obj`` needs to be save recursively.
         """
         return isinstance(obj, NeuralNetwork)
 
     @staticmethod
     def _needs_json(obj: object) -> bool:
-        """
-        Returns True if the object `obj` must be saved in a JSON file.
+        r"""Returns True if the object ``obj`` must be saved in a JSON file.
 
         Parameters
         ----------
@@ -540,7 +580,7 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            True if `obj` needs to be save in a JSON, else False.
+            True if ``obj`` needs to be save in a JSON, else False.
         """
         if isinstance(obj, (bool, int, float, complex, str)):
             return True
@@ -550,8 +590,7 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _is_delegated(key: str, delegs: List[str]) -> bool:
-        """
-        Returns True the entry of key `key` can be delegated to a recursive save. The attributs that are to be save recursively are contained in `delegs`.
+        r"""Returns True the entry of key ``key`` can be delegated to a recursive save. The attributs that are to be save recursively are contained in ``delegs``.
 
         Parameters
         ----------
@@ -563,7 +602,7 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            True if `key` is the name of an attribute whose save can be delegated, else False.
+            True if ``key`` is the name of an attribute whose save can be delegated, else False.
         """
         for prefix in delegs:
             if key.startswith(prefix):
@@ -574,8 +613,7 @@ class NeuralNetwork(nn.Module, ABC):
     def load(
         self, module_name: str, module_path: Optional[str] = None
     ) -> "NeuralNetwork":
-        """
-        Load a network from a local save made using the `.save` method.
+        r"""Load a network from a local save made using the ``save()`` method.
 
         Parameters
         ----------
@@ -583,6 +621,16 @@ class NeuralNetwork(nn.Module, ABC):
             Name of the directory in which the model has been saved.
         module_path: str | None
             Path to the previous directory.
+
+        Returns
+        -------
+        NeuralNetwork
+            loaded neural network instance.
+
+        Raises
+        ------
+        FileNotFoundError
+            The specified directory does not exist, or is not a directory.
         """
         if module_path is None:
             path = module_name
@@ -590,7 +638,7 @@ class NeuralNetwork(nn.Module, ABC):
             path = os.path.join(module_path, module_name)
 
         if not os.path.exists(path):
-            raise FileNotFoundError(f"{path} directory not exist")
+            raise FileNotFoundError(f"{path} directory does not exist")
         if not os.path.isdir(path):
             raise FileNotFoundError(f"{path} is not a directory")
 
@@ -601,8 +649,7 @@ class NeuralNetwork(nn.Module, ABC):
 
     @staticmethod
     def _recursive_load(path: str) -> "NeuralNetwork":
-        """
-        Make a recursive load of a PyTorch module.
+        r"""Make a recursive load of a PyTorch module.
 
         Parameters
         ----------
@@ -636,8 +683,12 @@ class NeuralNetwork(nn.Module, ABC):
         return module
 
     def copy(self) -> "NeuralNetwork":
-        """
-        Returns a copy of self which perform exactly the same operation. The copy is detached from the original network so any modification of one doesn't modify the other.
+        r"""Returns a copy of the network. The copy is detached from the original network so any modification of one doesn't modify the other.
+
+        Returns
+        -------
+        NeuralNetwork
+            copy of ``self``.
         """
         d = {
             name: getattr(self, name)

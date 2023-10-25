@@ -12,16 +12,9 @@ __all__ = ["MergingNetwork"]
 
 
 class MergingNetwork(NeuralNetwork):
-    """
-    Merging neural network.
+    r"""Utility class to run a set of neural networks in parallel to predict distinct sets of outputs."""
 
-    Attributes
-    ----------
-    subnetworks : nn.ModuleList[NeuralNetork]
-        List of concatenated networks.
-    """
-
-    subnetworks: nn.ModuleList
+    # subnetworks: nn.ModuleList
 
     def __init__(
         self,
@@ -33,17 +26,40 @@ class MergingNetwork(NeuralNetwork):
         device: Optional[str] = None,
     ):
         """
-        Initializer.
 
         Parameters
         ----------
-        param : nn.ModuleList[NeuralNetork]
-            List of embedded networks.
-        """
+        subnetworks : Sequence[NeuralNetwork]
+            set of neural networks to be run in parallel to predict distinct sets of outputs.
+        inputs_names : Optional[Sequence[str]], optional
+            List of inputs names. None if the names have not been specified. By default None.
+        outputs_names : Optional[Sequence[str]], optional
+            List of outputs names. None if the names have not been specified. By default None.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing, by default None.
+        outputs_transformer : Optional[Operator], optional
+            Transformation applied to the outputs after processing, by default None.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
 
+        Raises
+        ------
+        TypeError
+            The ``subnetworks`` argument must be a sequence of NeuralNetwork instances.
+        ValueError
+            All the elements of ``subnetworks`` must have the same number of inputs.
+        ValueError
+            Incompatible ``inputs_names`` among ``subnetworks``.
+        ValueError
+            No element of ``subnetworks`` can be None when outputs_names is not None.
+        ValueError
+            Some elements of ``subnetworks`` have the same outputs.
+        ValueError
+            Some elements of ``outputs_names`` cannot be found in the outputs of any element of ``subnetworks``.
+        """
         # Subnetworks
         if any([not isinstance(net, NeuralNetwork) for net in subnetworks]):
-            raise ValueError("subnetworks must be a sequence of NeuralNetwork")
+            raise TypeError("subnetworks must be a sequence of NeuralNetwork")
 
         # Inputs
         n_inputs = subnetworks[0].input_features
@@ -101,19 +117,6 @@ class MergingNetwork(NeuralNetwork):
         self.subnetworks = nn.ModuleList(subnetworks)
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Computes the output of the network for a batch of inputs `x`.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        """
         res = []
 
         for net in self.subnetworks:
@@ -124,19 +127,6 @@ class MergingNetwork(NeuralNetwork):
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
     ) -> None:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
         super().restrict_to_output_subset(output_subset)
 
         if isinstance(output_subset[0], int):

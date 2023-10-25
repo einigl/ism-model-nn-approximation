@@ -11,17 +11,11 @@ __all__ = ["PolynomialNetwork"]
 
 
 class PolynomialNetwork(NeuralNetwork):
-    """
-    Polynomial augmented features neural network.
-
-    Attributes
-    ----------
-    att : type
-        Description.
+    """Neural network with a polynomial expansion as a first layer.
     """
 
-    order: int
-    n_poly_features: int
+    # order: int
+    # n_poly_features: int
 
     def __init__(
         self,
@@ -34,13 +28,31 @@ class PolynomialNetwork(NeuralNetwork):
         outputs_transformer: Optional[Operator] = None,
         device: Optional[str] = None,
     ):
-        """
-        Initializer.
+        r"""
 
         Parameters
         ----------
-        param : type
-            Description.
+        input_features : int
+            Dimension of input vector.
+        order : int
+            order of the polynomial expansion.
+        subnetwork : NeuralNetwork
+            network to be placed after the polynomial expansion.
+        inputs_names : Optional[Sequence[str]], optional
+            List of inputs names. None if the names have not been specified. By default None.
+        outputs_names : Optional[Sequence[str]], optional
+            List of outputs names. None if the names have not been specified. By default None.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing, by default None.
+        outputs_transformer : Optional[Operator], optional
+            Transformation applied to the outputs after processing, by default None.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
+
+        Raises
+        ------
+        ValueError
+            The number of polynomial features does not match the input layer of the subnetwork.
         """
         super().__init__(
             input_features,
@@ -66,44 +78,22 @@ class PolynomialNetwork(NeuralNetwork):
         self.subnetwork = subnetwork
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Computes the output of the network for a batch of inputs `x`.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        """
         y_hat = self.poly(x)
         y_hat = self.subnetwork(y_hat)
         return y_hat
 
     def update_standardization(self, x: Union[Tensor, ndarray]) -> None:
-        """
-        Computes the mean and the standard deviation of the output of the polynomial expansion such that the expanded inputs are standardized.
+        """Applies the ``update_standardization`` method of the PolynomialExpansion first layer, i.e., updates the standardization parameters for the outputs of the polynomial expansion.
+
+        Parameters
+        ----------
+        x : Union[Tensor, ndarray]
+            input tensor.
         """
         self.poly.update_standardization(x)
 
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
     ) -> None:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
         super().restrict_to_output_subset(output_subset)
         self.subnetwork.restrict_to_output_subset(output_subset)

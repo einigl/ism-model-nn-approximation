@@ -12,13 +12,8 @@ __all__ = ["DenselyConnected"]
 
 
 class DenselyConnected(NeuralNetwork):
-    """
-    Densely connected neural network.
+    r"""Densely connected neural network. In such a network, the input of an hidden layer is the concatenation of the input and output of the previous layer. This `skip` operation permits to reduce the number of parameters to learn, to reuse intermediate computation results and to avoid gradient vanishing effects.
 
-    Attributes
-    ----------
-    att : type
-        Description.
     """
 
     def __init__(
@@ -37,12 +32,33 @@ class DenselyConnected(NeuralNetwork):
         last_restrictable: bool = True,
     ):
         """
-        Initializer.
 
         Parameters
         ----------
-        param : type
-            Description.
+        input_features : int
+            dimension of input vector.
+        output_features : int
+            dimension of output vector.
+        n_layers : int
+            number of layers in the network.
+        growing_factor : float
+            growing factor considered in the full network. The growing factor corresponds to the ratio of the output and input dimensions for one layer. For instance, ``growing_factor=1.0`` implies that the input of a hidden layer is twice that of the previous layer.
+        activation : nn.Module
+            activation function.
+        batch_norm : bool, optional
+            wether to use batch normalization during training, by default ``False``.
+        inputs_names : Optional[Sequence[str]], optional
+            List of inputs names. None if the names have not been specified. By default None.
+        outputs_names : Optional[Sequence[str]], optional
+            List of outputs names. None if the names have not been specified. By default None.
+        inputs_transformer : Optional[Operator], optional
+            Transformation applied to the inputs before processing, by default None.
+        outputs_transformer : Optional[Operator], optional
+            Transformation applied to the outputs after processing, by default None.
+        device : Optional[str], optional
+            Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
+        last_restrictable : bool, optional
+            wether the last layer is to be a RestrictableLinear layer, by default ``True``.
         """
         super().__init__(
             input_features,
@@ -99,23 +115,10 @@ class DenselyConnected(NeuralNetwork):
         self.layers_sizes.append(output_features)
 
         # print('layers_sizes')
-        # print(self.layers_sizes) # TODO
+        # print(self.layers_sizes)
         # print(sum(self.layers_sizes[:-1]))
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Computes the output of the network for a batch of inputs `x`.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor
-
-        Returns
-        -------
-        torch.Tensor
-            Output tensor
-        """
         xk = x.clone()
 
         is1d = xk.ndim == 1
@@ -139,19 +142,6 @@ class DenselyConnected(NeuralNetwork):
     def restrict_to_output_subset(
         self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
     ) -> None:
-        """
-        Description.
-
-        Parameters
-        ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
-        """
         super().restrict_to_output_subset(output_subset)
         if self.last_restrictable:
             self.output_layer.restrict_to_output_subset(

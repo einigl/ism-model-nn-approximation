@@ -32,14 +32,27 @@ class RegressionDataset(Dataset):
     ):
         r"""
 
-        Attributes
+        Parameters
         ----------
         x : numpy.ndarray
             Array containing the input features of the regression model.
-            x must be of shape :math:`N \times I` where :math:`N` is the number of entries and :math:`I` the number of input features.
+            Its shape is considered to be :math:`N \times I` where :math:`N` is the number of entries and :math:`I` the number of input features.
         y : numpy.ndarray
             Array containing the output features of the regression model.
-            y must be of shape :math:`N \times O` where :math:`N` is the number of entries and :math:`O` the number of output features.
+            Its shape is considered to be :math:`N \times O` where :math:`N` is the number of entries and :math:`O` the number of output features.
+        inputs_names : Optional[List[str]], optional
+            list of the names of the input features, by default None
+        outputs_names : Optional[List[str]], optional
+            list of the names of the output features, by default None
+
+        Raises
+        ------
+        ValueError
+            ``x`` and ``y`` must have the same number of rows :math:`N`.
+        ValueError
+            ``x`` and ``inputs_names`` must have the same number of features :math:`I`.
+        ValueError
+            ``y`` and ``outputs_names`` must have the same number of features :math:`O`.
         """
         super().__init__()
 
@@ -61,18 +74,18 @@ class RegressionDataset(Dataset):
 
     def __len__(self) -> int:
         """
-        Returns the number of entries in the dataset.
+        Returns the number of entries :math:`N` in the dataset.
 
         Returns
         -------
         int
-            Number of entries.
+            Number of entries :math:`N`.
         """
         return self._x.size(0)
 
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
         """
-        Returns the entries of index/indices idx.
+        Returns the entries corresponding to the index set ``idx``.
 
         Parameters
         ----------
@@ -103,36 +116,36 @@ class RegressionDataset(Dataset):
     @property
     def n_inputs(self) -> int:
         """
-        Number of input features.
+        Number of input features :math:`I`.
         """
         return self.x.size(1)
 
     @property
     def n_outputs(self) -> int:
         """
-        Number of output features.
+        Number of output features :math:`O`.
         """
         return self.y.size(1)
 
     @property
     def inputs_names(self) -> int:
         """
-        Inputs names.
+        List of the names of the input features.
         """
         return self._inputs_names
 
     @property
     def outputs_names(self) -> int:
         """
-        Outputs names.
+        List of the names of the output features.
         """
         return self._outputs_names
 
     def has_nan(self) -> Tuple[bool, bool]:
         """
         Returns a tuple of two boolean.
-        The first one is True if the input features contain at least one NaN, else False.
-        The second one is True if the output features contain at least one NaN, else False.
+        The first one is ``True`` if the input features contain at least one NaN, else ``False``.
+        The second one is ``True`` if the output features contain at least one NaN, else ``False``.
 
         Returns
         -------
@@ -144,8 +157,8 @@ class RegressionDataset(Dataset):
     def has_nonfinite(self) -> Tuple[bool, bool]:
         """
         Returns a tuple of two boolean.
-        The first one is True if the input features contain at least one non finite value (including NaNs), else False.
-        The second one is True if the output features contain at least one non finite value (including NaNs), else False.
+        The first one is ``True`` if the input features contain at least one non finite value (including NaNs), else ``False``.
+        The second one is ``True`` if the output features contain at least one non finite value (including NaNs), else ``False``.
 
         Returns
         -------
@@ -160,7 +173,7 @@ class RegressionDataset(Dataset):
         y_op: Optional[Callable[[np.ndarray], np.ndarray]],
     ) -> "RegressionDataset":
         """
-        Apply an operator to x and y. A new dataset is returned so the operators should not use in-place operations.
+        Apply an operator to ``x`` and ``y``. A new dataset is returned so the operators should not use in-place operations.
 
         Parameters
         ----------
@@ -195,12 +208,12 @@ class RegressionDataset(Dataset):
 
     def getall(self, numpy: bool = False) -> Tuple[Union[np.ndarray, Tensor], ...]:
         """
-        Returns all the dataset in numpy.ndarray or torch.Tensor depending on the value of the `numpy` parameter.
+        Returns all the dataset in numpy.ndarray or torch.Tensor depending on the value of the ``numpy`` parameter.
 
         Parameters
         ----------
         numpy : bool, optional
-            If `numpy` is True, the returned object will be numpy arrays.
+            If ``numpy==True``, the returned object will be numpy arrays.
             Else, they will be torch tensors.
 
         Returns
@@ -215,19 +228,21 @@ class RegressionDataset(Dataset):
 
     @staticmethod
     def from_pandas(df_x: pd.DataFrame, df_y: pd.DataFrame) -> "RegressionDataset":
-        """Converts two pandas DataFrames to a RegressionDataset object.
+        r"""Converts two pandas DataFrames to a RegressionDataset object.
 
         Parameters
         ----------
         df_x : pd.DataFrame
-            DataFrame of the inputs.
+            DataFrame of the inputs. This DataFrame should contain :math:`N` rows, i.e., number of entries, and :math:`I` columns, i.e., features.
         df_y : pd.DataFrame
-            DataFrame of the outputs.
+            DataFrame of the outputs. This DataFrame should contain :math:`N` rows, i.e., number of entries, and :math:`O` columns, i.e., features.
 
         Returns
         -------
         RegressionDataset
             associated RegressionDataset object.
+            The ``x`` attribute is set to values in the ``df_x`` DataFrame, and the ``input_names`` attribute to its column names.
+            The ``y`` attribute is set to values in the ``df_y`` DataFrame, and the ``output_names`` attribute to its column names.
         """
         return RegressionDataset(
             df_x.values,
@@ -237,12 +252,12 @@ class RegressionDataset(Dataset):
         )
 
     def to_pandas(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """Converts the dataset to two pandas DataFrames
+        """Converts the dataset to two pandas DataFrames.
 
         Returns
         -------
         Tuple[pd.DataFrame, pd.DataFrame]
-            Dataframes of the input x and output y, respectively.
+            DataFrames of the input ``x`` and output ``y``, respectively. The columns are names with the ``input_names`` and ``output_names``, respectively, if they are not ``None``.
         """
         return pd.DataFrame(self.x, columns=self._inputs_names), pd.DataFrame(
             self.y, columns=self._outputs_names
@@ -274,20 +289,20 @@ class RegressionDataset(Dataset):
         self: "RegressionDataset", other: "RegressionSubset"
     ) -> "RegressionSubset":
         """
-        Returns the substraction of two datasets. Data are copied.
+        Returns the subtraction of two datasets. Data are copied.
 
         Description.
 
         Parameters
         ----------
         other : RegressionSubset
-            Subset of `self`.
+            Subset of ``self``.
 
         Returns
         -------
 
         RegressionSubset
-            New subset of `self` containing all values that were not in `other`.
+            New subset of ``self`` containing all values that were not in `other`.
         """
         if not other.issubsetof(self):
             raise ValueError(
@@ -416,17 +431,17 @@ class RegressionSubset(RegressionDataset):
 
     def issubsetof(self, dataset: RegressionDataset) -> bool:
         """
-        Returns True of `self` is a subset of `dataset`.
+        Returns ``True`` of ``self`` is a subset of ``dataset``.
 
         Parameters
         ----------
         dataset : RegressionDataset
-            Dataset of which we want to know if `self` is a subset.
+            Dataset of which we want to know if ``self`` is a subset.
 
         Returns
         -------
         bool
-            True of `self` is a subset of `dataset` else False.
+            ``True`` of ``self`` is a subset of ``dataset`` else ``False``.
         """
         # TODO maybe a better solution is suitable
         return dataset == self._dataset

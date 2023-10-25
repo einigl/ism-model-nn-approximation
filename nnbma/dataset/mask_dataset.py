@@ -30,18 +30,18 @@ class MaskDataset(Dataset):
     ):
         r"""
 
-        Attributes
+        Parameters
         ----------
         m : np.ndarray
             Array containing the output features of the regression model.
             y must be of shape :math:`N \times F` where :math:`N` is the number of entries and :math:`F` the number of features.
         features_names : Optional[List[str]], optional
-            list of feature names, by default None
+            list of feature names, by default None.
 
         Raises
         ------
         ValueError
-            m and features_names must have the same number of features
+            ``m`` and ``features_names`` must have the same number of features :math:`F`.
         """
         super().__init__()
 
@@ -55,19 +55,19 @@ class MaskDataset(Dataset):
         self._features_names: Optional[List[str]] = features_names
 
     def __len__(self) -> int:
-        """
-        Returns the number of entries in the dataset.
+        r"""
+        Returns the number of entries :math:`N` in the dataset.
 
         Returns
         -------
         int
-            Number of entries.
+            Number of entries :math:`N`.
         """
         return self._m.size(0)
 
     def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
-        """
-        Returns the entries of indice(s) idx.
+        r"""
+        Returns the index entries idx.
 
         Parameters
         ----------
@@ -83,21 +83,21 @@ class MaskDataset(Dataset):
 
     @property
     def m(self) -> Tensor:
-        """
+        r"""
         Mask Tensor.
         """
         return self._m
 
     @property
     def n_outputs(self) -> int:
-        """
+        r"""
         Number of output features.
         """
         return self.m.size(1)
 
     @property
-    def features_names(self) -> int:
-        """
+    def features_names(self) -> Optional[List[str]]:
+        r"""
         Features names.
         """
         return self._features_names
@@ -111,13 +111,13 @@ class MaskDataset(Dataset):
         ...
 
     def getall(self, numpy: bool = False) -> Union[np.ndarray, Tensor]:
-        """
-        Returns all the dataset in numpy.ndarray or torch.Tensor depending on the value of the `numpy` parameter.
+        r"""
+        Returns all the dataset in numpy.ndarray or torch.Tensor depending on the value of the ``numpy`` parameter.
 
         Parameters
         ----------
         numpy : bool, optional
-            If ``numpy`` is True, the returned object will be numpy arrays.
+            If ``numpy==True``, the returned object will be numpy arrays.
             Else, they will be torch tensors.
 
         Returns
@@ -132,17 +132,17 @@ class MaskDataset(Dataset):
 
     @staticmethod
     def from_pandas(df_m: pd.DataFrame) -> "MaskDataset":
-        """Converts a pandas DataFrame to a MaskDataset object.
+        r"""Converts a pandas DataFrame to a MaskDataset object.
 
         Parameters
         ----------
         df_m : pd.DataFrame
-            DataFrame of the masked outputs.
+            DataFrame of the masked outputs. This DataFrame should contain :math:`N` rows, i.e., number of entries, and :math:`F` columns, i.e., features.
 
         Returns
         -------
         MaskDataset
-            associated MaskDataset object.
+            associated MaskDataset object. The ``m`` attribute is set to values in the DataFrame, and the ``feature_names`` attribute to the column names.
         """
         return MaskDataset(
             df_m.values,
@@ -150,17 +150,17 @@ class MaskDataset(Dataset):
         )
 
     def to_pandas(self) -> pd.DataFrame:
-        """Converts the mask dataset to two pandas DataFrames
+        r"""Converts the mask dataset to two pandas DataFrames.
 
         Returns
         -------
         pd.DataFrame
-            Dataframe of the mask on the output y.
+            DataFrame of the mask on the output y.
         """
         return pd.DataFrame(self.m, columns=self._features_names)
 
     def join(self: "MaskDataset", other: "MaskDataset") -> "MaskDataset":
-        """
+        r"""
         Returns the union of two datasets. Data are copied.
 
         Parameters
@@ -180,32 +180,29 @@ class MaskDataset(Dataset):
         return MaskDataset(x, y)
 
     def substract(self: "MaskDataset", other: "MaskSubset") -> "MaskDataset":
-        """
-        Returns the substraction of two datasets. Data are copied.
-
-        Description.
+        r"""
+        Returns the subtraction of two datasets. Data are copied.
 
         Parameters
         ----------
         other : MaskDataset
-            Subset of `self`.
+            Subset of ``self``.
 
         Returns
         -------
-
         MaskDataset
-            New subset of `self` containing all values that were not in `other`.
+            New subset of ``self`` containing all values that were not in `other`.
         """
         if not other.issubsetof(self):
             raise ValueError(
-                "set2 is not a subset of set1 so it cannot be substracted."
+                "set2 is not a subset of set1 so it cannot be subtracted."
             )
         new_indices = [i for i in range(len(self)) if i not in other.indices]
         # Algo can be improved.
         return MaskDataset(self, new_indices)
 
     def stats(self) -> Dict[str, np.ndarray]:
-        """Computes the proportion of masked entries for each output column.
+        r"""Computes the proportion of masked entries for each output column.
 
         Returns
         -------
@@ -217,14 +214,14 @@ class MaskDataset(Dataset):
         }
 
     def save(self, filename: str, path: Optional[str] = None) -> None:
-        """saves the dataset to a pickle file.
+        r"""saves the dataset to a pickle file.
 
         Parameters
         ----------
         filename : str
             name of the file to be created.
         path : Optional[str], optional
-            path to the file to be created, by default None
+            path to the file to be created, by default None.
         """
         if path is not None:
             filename = os.path.join(path, filename)
@@ -234,7 +231,7 @@ class MaskDataset(Dataset):
 
     @staticmethod
     def load(filename: str, path: Optional[str] = None) -> "MaskDataset":
-        """loads a mask dataset from a pickle file.
+        r"""loads a mask dataset from a pickle file.
 
         Parameters
         ----------
@@ -257,12 +254,12 @@ class MaskDataset(Dataset):
 
 
 class MaskSubset(MaskDataset):
-    """Subset of RegressionDataset."""
+    r"""Subset of RegressionDataset."""
 
     def __init__(self, dataset: MaskDataset, indices: Sequence[int]):
-        """
+        r"""
 
-        Attributes
+        Parameters
         ----------
         dataset : MaskDataset
             Dataset from which entries are extracted.
@@ -273,7 +270,7 @@ class MaskSubset(MaskDataset):
         self._indices: Sequence[int] = indices
 
     def __len__(self) -> int:
-        """
+        r"""
         Returns the number of entries in the dataset.
 
         Returns
@@ -284,8 +281,8 @@ class MaskSubset(MaskDataset):
         return len(self._indices)
 
     def __getitem__(self, idx) -> Tensor:
-        """
-        Returns the entries of indice(s) idx.
+        r"""
+        Returns the index entries idx.
 
         Parameters
         ----------
@@ -301,24 +298,24 @@ class MaskSubset(MaskDataset):
 
     @property
     def m(self) -> Tensor:
-        """
+        r"""
         Mask Tensor.
         """
         return self._dataset._m[self._indices]
 
     def issubsetof(self, dataset: MaskDataset) -> bool:
-        """
-        Returns True of `self` is a subset of `dataset`.
+        r"""
+        Returns ``True`` if ``self`` is a subset of ``dataset``.
 
         Parameters
         ----------
         dataset : MaskDataset
-            Dataset of which we want to know if `self` is a subset.
+            Dataset of which we want to know if ``self`` is a subset.
 
         Returns
         -------
         bool
-            True of `self` is a subset of `dataset` else False.
+            ``True`` if ``self`` is a subset of ``dataset`` else ``False``.
         """
         # TODO maybe a better solution is suitable
         return dataset == self._dataset

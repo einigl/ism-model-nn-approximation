@@ -11,17 +11,19 @@ __all__ = ["PolynomialExpansion"]
 
 class PolynomialExpansion(nn.Module):
     r"""
-    Polynomial expansion layer. For instance, for ``n_features = 3``and ``order = 2``,
+    Polynomial expansion layer. For instance, for ``n_features=3`` and ``order=2``,
 
-    .. math:
 
-        \mathrm{poly}((x_1,\, x_2,\,x_3)) = (x_1,\,x_2,\,x_3,\,x_1^2,\,x_1x_2,\,x_1x_3,\,x_2^2,\,x_2x_3,\,x_3^2)
+    .. math::
+
+       \mathrm{poly}((x_1,\, x_2,\,x_3)) = (x_1,\,x_2,\,x_3,\,x_1^2,\,x_1x_2,\,x_1x_3,\,x_2^2,\,x_2x_3,\,x_3^2)
+
     """
 
-    n_features: int
-    order: int
-    device: str
-    n_expanded_features: int
+    # n_features: int
+    # order: int
+    # device: str
+    # n_expanded_features: int
 
     def __init__(
         self,
@@ -29,18 +31,16 @@ class PolynomialExpansion(nn.Module):
         order: int,
         device: str = "cpu",
     ):
-        """
+        r"""
 
-        Attributes
+        Parameters
         ----------
-        input_features: int
+        n_features : int
             Number of input features.
-        output_features: int
-            Number of output features.
-        device: str
+        order : int
+            maximum degree of the polynomial expansion.
+        device : str, optional
             Device to use, by default "cpu".
-        n_expanded_features: int
-            computed dimension of the polynomial expansion.
         """
         super().__init__()
 
@@ -73,17 +73,17 @@ class PolynomialExpansion(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Evaluates the associated pytorch function.
+        Applies the polynomial expansion.
 
         Parameters
         ----------
         x : Tensor
-            Input tensor
+            Input tensor of shape (?, ``n_features``).
 
         Returns
         -------
         Tensor
-            Output tensor
+            Output tensor of shape (?, ``expanded_features(order, n_features)``).
         """
         is1d = x.ndim == 1
         if is1d:
@@ -143,20 +143,20 @@ class PolynomialExpansion(nn.Module):
 
     @staticmethod
     def expanded_features(order: int, n_features: int) -> int:
-        """Returns the number of augmented polynomial features of order lower or equal to `order` and of `n_features` variables.
+        """Returns the number of augmented polynomial features of order lower or equal to ``order`` and of ``n_features`` variables.
 
 
         Parameters
         ----------
         order : int
-            order of the polynomial expansion.
+            maximum degree of the polynomial expansion.
         n_features : int
-            dimension of the input vector.
+            Number of input features.
 
         Returns
         -------
         int
-            number of augmented polynomial features of order lower or equal to `order` and of `n_features` variables.
+            number of augmented polynomial features of order lower or equal to ``order`` and of ``n_features`` variables.
         """
         return sum([comb(n_features + d - 1, d) for d in range(1, order + 1)])
 
@@ -164,16 +164,17 @@ class PolynomialExpansion(nn.Module):
         self, x: Union[torch.Tensor, ndarray], reset: bool = False
     ) -> None:
         """
-        Update the mean and the standard deviation of the polynomial features.
-        This operation is not mandatory, but it can be helpful in order to have standardize features at the output of the layer, even in the case of standardized inputs (because polynomial transformations of standardized variables are generally not standardized).
-        This fonction can be called multiple times for different batches. To ensure correct moment calculation, no entry must be passed more than once.
+        This optional operation standardizes the output of the layer.
+        Even in case of standardized inputs, the output of this layer are in general not standardized because of the polynomial transformations.
+        This fonction can be called multiple times for different batches.
+        To ensure correct moment calculation, entries must pass this functino only once.
 
         Parameters
         ----------
         x : torch.Tensor
-            Input batch.
+            Input batch of shape (?, ``n_features``).
         reset: bool, optional
-            If True, reset moment calculation.
+            If ``True``, reset moment calculation.
         """
         if isinstance(x, ndarray):
             x = torch.from_numpy(x)

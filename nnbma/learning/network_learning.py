@@ -14,7 +14,7 @@ from nnbma.dataset import MaskDataset, MaskSubset, RegressionDataset, Regression
 from nnbma.networks import NeuralNetwork
 
 from .batch_scheduler import BatchScheduler
-from .loss_functions import EvolutiveLossFunction, MaskedLossFunction, MaskOverlay
+from .loss_functions import MaskedLossFunction, MaskOverlay
 
 __all__ = [
     "LearningParameters",
@@ -25,28 +25,17 @@ LOG10 = log(10)
 
 
 class LearningParameters:
-    """
-    Description.
-
-    Attributes
-    ----------
-    att : type
-        Description.
-
-    Methods
-    -------
-    meth()
-        Description
+    r"""Specifies the main parameters training, including the loss function to minimize and the stochastic gradient descent strategy.
     """
 
-    loss_fun: Union[
-        Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-        MaskedLossFunction,
-    ]
-    epochs: int
-    batch_size: Union[int, BatchScheduler, None]
-    optimizer: Optimizer
-    scheduler: _LRScheduler
+    # loss_fun: Union[
+    #     Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+    #     MaskedLossFunction,
+    # ]
+    # epochs: int
+    # batch_size: Union[int, BatchScheduler, None]
+    # optimizer: Optimizer
+    # scheduler: _LRScheduler
 
     def __init__(
         self,
@@ -59,18 +48,20 @@ class LearningParameters:
         optimizer: Optimizer,
         scheduler: Optional[_LRScheduler] = None,
     ):
-        """
-        Description.
+        r"""
 
         Parameters
         ----------
-        param : type
-            Description.
-
-        Returns
-        -------
-        type
-            Description.
+        loss_fun : Union[ Callable[[torch.Tensor, torch.Tensor], torch.Tensor], MaskedLossFunction, ]
+            loss function.
+        epochs : int
+            total number of epochs to perform.
+        batch_size : Union[int, BatchScheduler, None]
+            batch size value or scheduler to use during training.
+        optimizer : Optimizer
+            optimizer to use for training.
+        scheduler : Optional[_LRScheduler], optional
+            learning rate scheduler, by default None
         """
         self.loss_fun = loss_fun
         self.epochs = epochs
@@ -82,7 +73,6 @@ class LearningParameters:
             self.scheduler = scheduler
 
     def __str__(self):
-        """Returns str(self)"""
         s = "Learning parameters:\n"
         s += f"\tLoss function: {self.loss_fun}\n"
         s += f"\tEpochs: {self.epochs}\n"
@@ -106,18 +96,72 @@ def learning_procedure(
     seed: Optional[int] = None,
     max_iter_no_improve: Optional[int] = None,
 ) -> Dict[str, object]:
-    """
-    Description.
+    r"""Performs the training of the neural network ``model`` to fit the provided training data.
 
     Parameters
     ----------
-    param : type
-        Description.
+    model : NeuralNetwork
+        model to train.
+    dataset : Union[RegressionDataset, Tuple[RegressionDataset, RegressionDataset]]
+        dataset to use for training and validation. This argument is used with ``mask_dataset`` (to define the corresponding masked values) and ``val_frac`` (to define the proportion of entries to use in the validation set).
+    learning_parameters : Union[LearningParameters, List[LearningParameters]]
+        parameters of the stochastic gradient descent algorithm.
+    mask_dataset : Union[ MaskDataset, Tuple[MaskDataset, MaskDataset], None, Tuple[None, None] ], optional
+        _description_, by default None
+    train_samples : Optional[Sequence], optional
+        samples to use for training. When used, the arguments ``dataset``, ``mask_dataset`` and ``val_frac`` are disregarded. By default None.
+    val_samples : Optional[Sequence], optional
+        samples to use for validation, by default None.
+    val_frac : Optional[float], optional
+        proportion of elements of the ``dataset`` to use in the validation set. If specified, should be between 0 and 1. By default None.
+    verbose : bool, optional
+        wether to detail the loss and relative error values evolution during training, by default True.
+    seed : Optional[int], optional
+        random seed for reproducibility, by default None.
+    max_iter_no_improve : Optional[int], optional
+        early stopping parameter. The training stops when the error on the validation set does not decrease for ``max_iter_no_improve`` steps. By default None.
 
     Returns
     -------
-    type
-        Description.
+    Dict[str, object]
+        This dictionary contains:
+
+        - "train_loss": the time series of the average train loss per epoch.
+
+        - "val_loss": the time series of the validation loss per epoch.
+
+        - "train_relerr": the time series of the average train relative error per epoch.
+
+        - "val_relerr": the time series of the average validation relative error per epoch.
+
+        - "train_set": train_set.
+
+        - "val_set": val_set.
+
+        - "lr": the time series of the learning rate per epoch.
+
+        - "batch_size": the time series of the batch size per epoch.
+
+        - "duration": total duration of training.
+
+    Raises
+    ------
+    TypeError
+        The ``dataset`` argument must be an instance of "RegressionDataset" or a tuple of two "RegressionDataset".
+    TypeError
+        The ``mask_dataset`` argument must be an instance of "MaskDataset" or a tuple of two "MaskDataset" or None.
+    ValueError
+        The ``mask_dataset`` argument must not be a tuple when the ``dataset`` argument is a "RegressionDataset".
+    ValueError
+        The ``dataset`` argument must not be a tuple when ``mask_dataset`` is a "MaskDataset".
+    ValueError
+        The train dataset and validation dataset must not share samples.
+    ValueError
+        The training dataset must not contain non finite values.
+    ValueError
+        The ``learning_parameters`` argument must be an instance of "LearningParameters" or a list of "LearningParameters".
+    ValueError
+        The ``learning_parameter.loss_function`` must not be an instance of "MaskedLossFunction" when ``mask_dataset=None``.
     """
 
     # Start counter
@@ -438,8 +482,6 @@ def learning_procedure(
                 scheduler.step(train_loss[-1])
             else:
                 scheduler.step()
-            if isinstance(loss, EvolutiveLossFunction):
-                loss.step()
             if isinstance(batch_size, BatchScheduler):
                 batch_size.step()
 

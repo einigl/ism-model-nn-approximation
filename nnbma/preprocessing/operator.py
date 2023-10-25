@@ -7,9 +7,16 @@ __all__ = ["Operator", "ColumnwiseOperator", "SequentialOperator"]
 
 
 class Operator:
-    """TODO"""
+    r"""Class that stores a transformation to be applied to a full dataset or to one column."""
 
     def __init__(self, fun: Callable[[np.ndarray], np.ndarray]):
+        r"""
+
+        Parameters
+        ----------
+        fun : Callable[[np.ndarray], np.ndarray]
+            any function that returns numpy.arrays with the same size as its input.
+        """
         self.fun = fun
 
     def __call__(self, t: np.ndarray):
@@ -20,9 +27,17 @@ class Operator:
 
 
 class ColumnwiseOperator(Operator):
-    """TODO"""
+    """Class that stores a list of operators -- one per column of the dataset to be considered. It defines a pre-processing on the dataset.
+    """
 
     def __init__(self, ops: List[Callable[[np.ndarray], np.ndarray]]):
+        r"""
+
+        Parameters
+        ----------
+        ops : List[Callable[[np.ndarray], np.ndarray]]
+            list of operators or composition of operators, with one per column of the dataset to be pre-processed.
+        """
         self.n_cols = len(ops)
         self.ops = ops
 
@@ -35,9 +50,16 @@ class ColumnwiseOperator(Operator):
 
 
 class SequentialOperator(Operator):
-    """TODO"""
+    r"""Defines an operator on one column as a composition of multiple operators."""
 
     def __init__(self, ops: List[Operator]):
+        r"""
+
+        Parameters
+        ----------
+        ops : List[Operator]
+            the list of operators to be composed, in the order of application.
+        """
         self.ops = ops
 
     def __call__(self, t: np.ndarray):
