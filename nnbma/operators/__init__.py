@@ -1,6 +1,6 @@
 from .base import *
-from .operator import *
 from .normalization import *
+from .operator import *
 
 __all__ = []
 __all__.extend(base.__all__)

@@ -3,18 +3,15 @@ from typing import Optional, Sequence, Union
 
 from torch import Tensor, concat, nn
 
-from ..preprocessing import Operator
 from ..layers import RestrictableLinear
-
+from ..operators import Operator
 from .neural_network import NeuralNetwork
 
 __all__ = ["DenselyConnected"]
 
 
 class DenselyConnected(NeuralNetwork):
-    r"""Densely connected neural network. In such a network, the input of an hidden layer is the concatenation of the input and output of the previous layer. This `skip` operation permits to reduce the number of parameters to learn, to reuse intermediate computation results and to avoid gradient vanishing effects.
-
-    """
+    r"""Densely connected neural network. In such a network, the input of an hidden layer is the concatenation of the input and output of the previous layer. This `skip` operation permits to reduce the number of parameters to learn, to reuse intermediate computation results and to avoid gradient vanishing effects."""
 
     def __init__(
         self,

@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from ..preprocessing import Operator
+from ..operators import Operator
 
 __all__ = ["NeuralNetwork"]
 

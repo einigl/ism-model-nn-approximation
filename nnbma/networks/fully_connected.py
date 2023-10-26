@@ -3,15 +3,14 @@ from typing import Iterable, Optional, Sequence, Union
 from torch import Tensor, nn
 
 from ..layers import RestrictableLinear
-from ..preprocessing import Operator
+from ..operators import Operator
 from .neural_network import NeuralNetwork
 
 __all__ = ["FullyConnected"]
 
 
 class FullyConnected(NeuralNetwork):
-    r"""Standard fully connected neural network.
-    """
+    r"""Standard fully connected neural network."""
 
     def __init__(
         self,

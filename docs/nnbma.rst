@@ -11,7 +11,7 @@ Subpackages
    nnbma.layers
    nnbma.learning
    nnbma.networks
-   nnbma.preprocessing
+   nnbma.operators
 
 Module contents
 ---------------

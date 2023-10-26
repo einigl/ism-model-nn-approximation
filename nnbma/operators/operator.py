@@ -27,8 +27,7 @@ class Operator:
 
 
 class ColumnwiseOperator(Operator):
-    """Class that stores a list of operators -- one per column of the dataset to be considered. It defines a pre-processing on the dataset.
-    """
+    """Class that stores a list of operators -- one per column of the dataset to be considered. It defines a pre-processing on the dataset."""
 
     def __init__(self, ops: List[Callable[[np.ndarray], np.ndarray]]):
         r"""

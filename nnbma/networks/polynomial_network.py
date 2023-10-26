@@ -4,15 +4,14 @@ from numpy import ndarray
 from torch import Tensor
 
 from ..layers import PolynomialExpansion
-from ..preprocessing import Operator
+from ..operators import Operator
 from .neural_network import NeuralNetwork
 
 __all__ = ["PolynomialNetwork"]
 
 
 class PolynomialNetwork(NeuralNetwork):
-    """Neural network with a polynomial expansion as a first layer.
-    """
+    """Neural network with a polynomial expansion as a first layer."""
 
     # order: int
     # n_poly_features: int

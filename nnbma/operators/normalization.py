@@ -30,8 +30,7 @@ class NormTypes(Enum):
 
 
 class Normalizer(Operator):
-    r"""Specific operator that applies a specified normalization of the dataset.
-    """
+    r"""Specific operator that applies a specified normalization of the dataset."""
 
     def __init__(self, df: pd.DataFrame, norm_type: NormTypes):
         """
@@ -93,8 +92,7 @@ class Normalizer(Operator):
 
 
 class InverseNormalizer(Operator):
-    r"""Specific operator that reverts a specified normalization of the dataset.
-    """
+    r"""Specific operator that reverts a specified normalization of the dataset."""
 
     def __init__(self, df: pd.DataFrame, norm_type: NormTypes):
         """

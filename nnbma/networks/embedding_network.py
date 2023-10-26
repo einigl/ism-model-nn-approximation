@@ -10,16 +10,14 @@ import torch
 from torch import Tensor, nn
 
 from ..layers import AdditionalModule
-from ..preprocessing import Operator
+from ..operators import Operator
 from .neural_network import NeuralNetwork
 
 __all__ = ["EmbeddingNetwork"]
 
 
 class EmbeddingNetwork(NeuralNetwork):
-    r"""Embedding neural network.
-
-    """
+    r"""Embedding neural network."""
 
     # subnetwork: NeuralNetwork
     # preprocessing: nn.Sequential

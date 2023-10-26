@@ -5,7 +5,7 @@ from warnings import warn
 import torch
 from torch import Tensor, nn
 
-from ..preprocessing import Operator
+from ..operators import Operator
 from .neural_network import NeuralNetwork
 
 __all__ = ["MergingNetwork"]

@@ -13,7 +13,7 @@ import pandas as pd
 from helpers.lines import filter_molecules
 
 from nnbma.dataset import MaskDataset, RegressionDataset
-from nnbma.preprocessing import (
+from nnbma.operators import (
     ColumnwiseOperator,
     InverseNormalizer,
     Normalizer,
