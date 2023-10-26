@@ -44,6 +44,8 @@ class RestrictableLinear(nn.Linear):
         self.subweight = None
         self.subbias = None
 
+        self.eval()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Evaluates the linear layer, restricted or not depending of past settings.
 

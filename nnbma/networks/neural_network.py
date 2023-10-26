@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from inspect import signature
 from typing import List, Literal, Optional, Sequence, Tuple, Union, overload
+from warnings import warn
 
 import numpy as np
 import torch
@@ -168,7 +169,16 @@ class NeuralNetwork(nn.Module, ABC):
                 )
             x = self.inputs_transformer(x)
 
+        p = next(self.parameters())
         x = torch.from_numpy(x).to(self.device)
+        if x.dtype != p.dtype:
+            warn(
+                (
+                    f"dtype of x ({x.dtype}) must match dtype of the network parameters ({p.dtype})."
+                    "A conversion has been performed, but consider performing this conversion before evaluating the model in the future."
+                )
+            )
+            x = x.type(p.dtype)
         with torch.no_grad():
             y = self.forward(x)
         y = y.detach().cpu().numpy()
@@ -295,7 +305,7 @@ class NeuralNetwork(nn.Module, ABC):
         if any(not isinstance(x, int) for x in output_subset):
             raise TypeError("output_subset must be a list of int")
 
-        if not self._check_if_sublist(list(range(self.out_features)), output_subset):
+        if not self._check_if_sublist(list(range(self.output_features)), output_subset):
             raise ValueError("input_subset is not a valid subset")
 
         return [self.outputs_names[k] for k in output_subset]
