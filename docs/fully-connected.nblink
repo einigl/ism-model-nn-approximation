@@ -1,3 +1,6 @@
 {
-    "path": "../examples/fully-connected.ipynb"
+    "path": "../examples/fully-connected.ipynb",
+    "extra-media": [
+        "../examples/img"
+    ]
 }
