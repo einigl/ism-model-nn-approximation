@@ -87,5 +87,5 @@ max-line-length = "88"
 
 
 [tool.poetry.urls]
-# Documentation = "https://readthedocs.org"
+Documentation = "https://ism-model-nn-approximation.readthedocs.io/en/latest/"
 "Bug Tracker" = "https://github.com/einigl/ism-model-nn-approximation/issues"
