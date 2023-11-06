@@ -44,13 +44,6 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-# def test_verify():
-#     net = _init()
-#     path = os.path.dirname(os.path.abspath(__file__))
-
-#     net.save("temp-verify-merging", path)
-
-
 def test_derivatives():
     net = _init()
     path = os.path.dirname(os.path.abspath(__file__))

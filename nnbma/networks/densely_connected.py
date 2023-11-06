@@ -43,7 +43,7 @@ class DenselyConnected(NeuralNetwork):
         activation : nn.Module
             activation function.
         batch_norm : bool, optional
-            wether to use batch normalization during training, by default ``False``.
+            whether to use batch normalization during training, by default ``False``.
         inputs_names : Optional[Sequence[str]], optional
             List of inputs names. None if the names have not been specified. By default None.
         outputs_names : Optional[Sequence[str]], optional
@@ -55,7 +55,7 @@ class DenselyConnected(NeuralNetwork):
         device : Optional[str], optional
             Device used ("cpu" or "cuda"), by default None (corresponds to "cpu").
         last_restrictable : bool, optional
-            wether the last layer is to be a RestrictableLinear layer, by default ``True``.
+            whether the last layer is to be a RestrictableLinear layer, by default ``True``.
         """
         super().__init__(
             input_features,

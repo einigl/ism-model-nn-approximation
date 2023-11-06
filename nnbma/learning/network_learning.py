@@ -25,8 +25,7 @@ LOG10 = log(10)
 
 
 class LearningParameters:
-    r"""Specifies the main parameters training, including the loss function to minimize and the stochastic gradient descent strategy.
-    """
+    r"""Specifies the main parameters training, including the loss function to minimize and the stochastic gradient descent strategy."""
 
     # loss_fun: Union[
     #     Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
@@ -115,7 +114,7 @@ def learning_procedure(
     val_frac : Optional[float], optional
         proportion of elements of the ``dataset`` to use in the validation set. If specified, should be between 0 and 1. By default None.
     verbose : bool, optional
-        wether to detail the loss and relative error values evolution during training, by default True.
+        whether to detail the loss and relative error values evolution during training, by default True.
     seed : Optional[int], optional
         random seed for reproducibility, by default None.
     max_iter_no_improve : Optional[int], optional

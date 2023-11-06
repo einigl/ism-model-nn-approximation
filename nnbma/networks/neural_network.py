@@ -146,9 +146,9 @@ class NeuralNetwork(nn.Module, ABC):
         x : ndarray
             batch of inputs of shape (?, ``input_features``).
         transform_inputs : bool, optional
-            wether the input ``x`` are to be pre-processed.
+            whether the input ``x`` are to be pre-processed.
         transform_outputs : bool, optional
-            wether the predictions ``y`` are to be post-processed.
+            whether the predictions ``y`` are to be post-processed.
 
         Returns
         -------
@@ -353,7 +353,7 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            wether all elements of ``subseq`` are also elements of ``seq``.
+            whether all elements of ``subseq`` are also elements of ``seq``.
         """
         return set(subseq) <= set(seq)
 
@@ -541,15 +541,20 @@ class NeuralNetwork(nn.Module, ABC):
             if NeuralNetwork._needs_recursion(obj):
                 NeuralNetwork._recursive_save(obj, os.path.join(path, arg))
                 delegs.append(arg)
+            elif NeuralNetwork._needs_list_recursion(obj):
+                newobj = []
+                for i, el in enumerate(obj):
+                    if NeuralNetwork._needs_recursion(el):
+                        NeuralNetwork._recursive_save(
+                            el, os.path.join(path, f"{arg}-{i}")
+                        )
+                        newobj.append(None)
+                    else:
+                        newobj.append(el)
+                NeuralNetwork._save_regular(newobj, template.format(arg))
+                delegs.append(arg)
             else:
-                if NeuralNetwork._needs_json(obj):
-                    with open(
-                        template.format(f"{arg}.json"), "w", encoding="utf-8"
-                    ) as f:
-                        json.dump(obj, f, ensure_ascii=False, indent=4)
-                else:
-                    with open(template.format(f"{arg}.pkl"), "wb") as f:
-                        pickle.dump(obj, f)
+                NeuralNetwork._save_regular(obj, template.format(arg))
 
         sd = module.state_dict()
         sd = OrderedDict(
@@ -563,6 +568,27 @@ class NeuralNetwork(nn.Module, ABC):
         torch.save(sd, template.format("state_dict.pth"))
 
     @staticmethod
+    def _save_regular(
+        obj: object,
+        filename: str,
+    ) -> None:
+        r"""Save object ``obj`` in json or pickle files.
+
+        Parameters
+        ----------
+        module: nn.Module
+            Module to save.
+        path:
+            Path to save the Module.
+        """
+        if NeuralNetwork._needs_json(obj):
+            with open(f"{filename}.json", "w", encoding="utf-8") as f:
+                json.dump(obj, f, ensure_ascii=False, indent=4)
+        else:
+            with open(f"{filename}.pkl", "wb") as f:
+                pickle.dump(obj, f)
+
+    @staticmethod
     def _needs_recursion(obj: object) -> bool:
         r"""Returns ``True`` if ``obj`` is an object that need to be saved recursively, else ``False``.
 
@@ -574,9 +600,27 @@ class NeuralNetwork(nn.Module, ABC):
         Returns
         -------
         bool
-            wether ``obj`` needs to be save recursively.
+            whether ``obj`` needs to be save recursively.
         """
         return isinstance(obj, NeuralNetwork)
+
+    @staticmethod
+    def _needs_list_recursion(obj: object) -> bool:
+        r"""Returns ``True`` if ``obj`` is a list whose elements need to be saved recursively, else ``False``.
+
+        Parameters
+        ----------
+        obj: object
+            Any Python object.
+
+        Returns
+        -------
+        bool
+            whether at least one element of ``obj`` needs to be save recursively.
+        """
+        if not isinstance(obj, (list, nn.ModuleList)):
+            return False
+        return any([NeuralNetwork._needs_recursion(el) for el in obj])
 
     @staticmethod
     def _needs_json(obj: object) -> bool:
@@ -592,6 +636,8 @@ class NeuralNetwork(nn.Module, ABC):
         bool
             True if ``obj`` needs to be save in a JSON, else False.
         """
+        if obj is None:
+            return True
         if isinstance(obj, (bool, int, float, complex, str)):
             return True
         if isinstance(obj, (list, tuple)):
@@ -684,6 +730,13 @@ class NeuralNetwork(nn.Module, ABC):
             else:
                 raise RuntimeError("Should never been here.")
 
+            if isinstance(d[arg], list) and any([el is None for el in d[arg]]):
+                for i, _ in enumerate(d[arg]):
+                    if os.path.isdir(template.format(f"{arg}-{i}")):
+                        d[arg][i] = NeuralNetwork._recursive_load(
+                            template.format(f"{arg}-{i}")
+                        )
+
         module: nn.Module = type_module(**d)
 
         sd = module.state_dict()
@@ -708,6 +761,11 @@ class NeuralNetwork(nn.Module, ABC):
         for name in d:
             if NeuralNetwork._needs_recursion(d[name]):
                 d[name] = d[name].copy()
+            elif NeuralNetwork._needs_iterable_recursion(d[name]):
+                d[name] = [
+                    el.copy() if NeuralNetwork._needs_recursion(el) else el
+                    for el in d[name]
+                ]
 
         new = type(self)(**d)
         new.load_state_dict(self.state_dict())
