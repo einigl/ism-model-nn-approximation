@@ -8,9 +8,7 @@ __all__ = [
 
 
 class BatchScheduler(ABC):
-    r"""Abstract class for schedulers of the batch size :math:`b(t)` with respect to the ``epoch`` attribute, denoted :math:`t` in math equations.
-    """
-    # epoch: int
+    r"""Abstract class for schedulers of the batch size :math:`b(t)` with respect to the ``epoch`` attribute, denoted :math:`t` in math equations."""
 
     def __init__(self):
         self.epoch = 1

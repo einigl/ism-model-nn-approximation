@@ -11,10 +11,7 @@ __all__ = ["PolynomialNetwork"]
 
 
 class PolynomialNetwork(NeuralNetwork):
-    """Neural network with a polynomial expansion as a first layer."""
-
-    # order: int
-    # n_poly_features: int
+    r"""Neural network with a polynomial expansion as a first layer."""
 
     def __init__(
         self,

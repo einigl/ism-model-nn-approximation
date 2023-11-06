@@ -19,10 +19,6 @@ __all__ = ["EmbeddingNetwork"]
 class EmbeddingNetwork(NeuralNetwork):
     r"""Embedding neural network."""
 
-    # subnetwork: NeuralNetwork
-    # preprocessing: nn.Sequential
-    # postprocessing: nn.Sequential
-
     def __init__(
         self,
         subnetwork: NeuralNetwork,
@@ -66,9 +62,6 @@ class EmbeddingNetwork(NeuralNetwork):
             preprocessing = []
         elif not isinstance(preprocessing, List):
             preprocessing = [preprocessing]
-        print("\n\n\n\n\n")
-        print(postprocessing)
-        print("\n\n\n\n\n")
         if any([not isinstance(m, AdditionalModule) for m in preprocessing]):
             raise TypeError(
                 "All elements of preprocessing must be instances of AdditionalModule"
@@ -90,9 +83,6 @@ class EmbeddingNetwork(NeuralNetwork):
             postprocessing = []
         elif not isinstance(postprocessing, List):
             postprocessing = [postprocessing]
-        print("\n\n\n\n\n")
-        print(postprocessing)
-        print("\n\n\n\n\n")
         if any([not isinstance(m, AdditionalModule) for m in postprocessing]):
             raise TypeError(
                 "All elements of postprocessing must be instances of AdditionalModule"
@@ -121,11 +111,14 @@ class EmbeddingNetwork(NeuralNetwork):
         )
 
         self.subnetwork = subnetwork
-        self.preprocessing = nn.Sequential(*preprocessing)
-        self.postprocessing = nn.Sequential(*postprocessing)
+        self.preprocessing = nn.ModuleList(preprocessing)
+        self.postprocessing = nn.ModuleList(postprocessing)
 
     def forward(self, x: Tensor) -> Tensor:
-        y = self.preprocessing(x)
+        y = x.clone()
+        for op in self.preprocessing:
+            y = op(y)
         y = self.subnetwork.forward(y)
-        y = self.postprocessing(y)
+        for op in self.postprocessing:
+            y = op(y)
         return y

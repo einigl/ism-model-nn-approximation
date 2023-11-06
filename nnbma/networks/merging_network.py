@@ -14,8 +14,6 @@ __all__ = ["MergingNetwork"]
 class MergingNetwork(NeuralNetwork):
     r"""Utility class to run a set of neural networks in parallel to predict distinct sets of outputs."""
 
-    # subnetworks: nn.ModuleList
-
     def __init__(
         self,
         subnetworks: Sequence[NeuralNetwork],

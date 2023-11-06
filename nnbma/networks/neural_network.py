@@ -21,16 +21,6 @@ __all__ = ["NeuralNetwork"]
 class NeuralNetwork(nn.Module, ABC):
     r"""Neural network abstract class."""
 
-    # input_features: int
-    # output_features: int
-    # inputs_names: Optional[List[str]] = None
-    # outputs_names: Optional[List[str]] = None
-    # inputs_transformer: Optional[Operator] = None
-    # outputs_transformer: Optional[Operator] = None
-    # device: str
-    # current_output_subset: List[str]
-    # current_output_subset_indices: List[int]
-
     def __init__(
         self,
         input_features: int,
@@ -538,6 +528,9 @@ class NeuralNetwork(nn.Module, ABC):
         delegs = []
         for arg in args:
             obj = getattr(module, arg)
+            if isinstance(obj, nn.ModuleList):
+                obj = list(obj)
+
             if NeuralNetwork._needs_recursion(obj):
                 NeuralNetwork._recursive_save(obj, os.path.join(path, arg))
                 delegs.append(arg)
@@ -618,7 +611,7 @@ class NeuralNetwork(nn.Module, ABC):
         bool
             whether at least one element of ``obj`` needs to be save recursively.
         """
-        if not isinstance(obj, (list, nn.ModuleList)):
+        if not isinstance(obj, list):
             return False
         return any([NeuralNetwork._needs_recursion(el) for el in obj])
 

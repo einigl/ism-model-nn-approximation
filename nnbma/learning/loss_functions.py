@@ -11,11 +11,6 @@ __all__ = [
     "MaskedLossFunction",
     "MaskOverlay",
     "MaskedMSELoss",
-    # "MaskedWeightedMSELoss",
-    # "MaskedMAELoss",
-    # "MaskedPowerLoss",
-    # "MaskedSeriesLoss",
-    # "MaskedRelErrorLoss",
     "CauchyLoss",
     "SmoothL1Loss",
 ]
@@ -24,8 +19,7 @@ __all__ = [
 
 
 class MaskedLossFunction(nn.Module, ABC):
-    r"""Implements a masked loss function which has a signature ``loss_fun(y_hat, y, mask)``.
-    """
+    r"""Implements a masked loss function which has a signature ``loss_fun(y_hat, y, mask)``."""
 
     def __init__(self):
         r""" """
@@ -189,6 +183,7 @@ class MaskedMSELoss(MaskedLossFunction):
 
 
 # Custom classic loss functions
+
 
 class CauchyLoss(nn.Module):
     r"""Implements the Cauchy loss function, i.e.,

@@ -5,12 +5,15 @@ import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
 
-from nnbma import EmbeddingNetwork, FullyConnected
+from nnbma import AdditionalModuleFromExisting, EmbeddingNetwork, FullyConnected
 
 
 def _init() -> EmbeddingNetwork:
     preprocessing = None  # layers.AdditionalModule(nn.Identity())
-    postprocessing = None  # layers.AdditionalModule(nn.Identity())
+    postprocessing = [
+        AdditionalModuleFromExisting(None, None, torch.exp),
+        AdditionalModuleFromExisting(None, None, torch.log),
+    ]
 
     layers_sizes = [5, 10, 10, 20]
     activation = nn.ELU()
@@ -34,22 +37,16 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-# def test_save_load():
-#     net = _init()
-#     path = os.path.dirname(os.path.abspath(__file__))
+def test_save_load():
+    net = _init()
+    path = os.path.dirname(os.path.abspath(__file__))
 
-#     net.save("temp-net", path)
-#     net2 = EmbeddingNetwork.load("temp-net", path)
-#     shutil.rmtree(os.path.join(path, "temp-net"))
+    net.save("temp-net", path)
+    net2 = EmbeddingNetwork.load("temp-net", path)
+    shutil.rmtree(os.path.join(path, "temp-net"))
 
-#     x = torch.normal(0, 1, size=(net.input_features,))
-#     assert torch.all(net(x) == net2(x))
-
-# def test_verify():
-#     net = _init()
-#     path = os.path.dirname(os.path.abspath(__file__))
-
-#     net.save("temp-verify-embedding", path)
+    x = torch.normal(0, 1, size=(net.input_features,))
+    assert torch.all(net(x) == net2(x))
 
 
 def test_derivatives():

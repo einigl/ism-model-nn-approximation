@@ -20,11 +20,6 @@ class PolynomialExpansion(nn.Module):
 
     """
 
-    # n_features: int
-    # order: int
-    # device: str
-    # n_expanded_features: int
-
     def __init__(
         self,
         n_features: int,
