@@ -80,7 +80,6 @@ class DenselyConnected(NeuralNetwork):
         self.layers_sizes = [input_features]
         for k in range(n_layers - 1):
             n_outputs = ceil(growing_factor * n_inputs)
-            self.layers_sizes.append(n_outputs)
 
             if batch_norm and k < n_layers - 2:
                 self.layers.append(
@@ -93,8 +92,7 @@ class DenselyConnected(NeuralNetwork):
                 self.layers.append(nn.Linear(n_inputs, n_outputs, device=self.device))
 
             n_inputs += n_outputs
-
-        # self.layers.to(self.device)
+            self.layers_sizes.append(n_inputs)
 
         if last_restrictable:
             self.output_layer = RestrictableLinear(
@@ -110,10 +108,6 @@ class DenselyConnected(NeuralNetwork):
                 device=self.device,
             )
         self.layers_sizes.append(output_features)
-
-        # print('layers_sizes')
-        # print(self.layers_sizes)
-        # print(sum(self.layers_sizes[:-1]))
 
     def forward(self, x: Tensor) -> Tensor:
         xk = x.clone()

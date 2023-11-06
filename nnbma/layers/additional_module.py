@@ -24,7 +24,6 @@ class AdditionalModule(nn.Module, ABC):
         device: str = "cpu",
     ):
         r"""
-
         Parameters
         ----------
         input_features: int
@@ -40,10 +39,13 @@ class AdditionalModule(nn.Module, ABC):
         self.output_features = output_features
         self.device = device
 
+        if module is not None:
+            self.forward = module.forward
+
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
-        Evaluates the associated pytorch function.
+        Evaluates the associated PyTorch function.
 
         Parameters
         ----------

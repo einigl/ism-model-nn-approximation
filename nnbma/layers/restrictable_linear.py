@@ -86,13 +86,12 @@ class RestrictableLinear(nn.Linear):
             self.subbias = self.bias.data[indices]
 
     def train(self, mode: bool = True) -> "RestrictableLinear":
-        r"""Sets the object in train mode if ``mode==True``and in eval mode else.
-
+        r"""Sets the object in train mode if ``mode is True`` and in eval mode else.
 
         Parameters
         ----------
         mode : bool, optional
-            wether the layer is to be set in train mode (``True``) or eval mode (``False``), by default ``True``.
+            Whether the layer is to be set in train mode (``True``) or eval mode (``False``), by default ``True``.
 
         Returns
         -------

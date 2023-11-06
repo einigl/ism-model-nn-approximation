@@ -77,8 +77,8 @@ class PolynomialNetwork(NeuralNetwork):
         self.subnetwork = subnetwork
 
     def forward(self, x: Tensor) -> Tensor:
-        y_hat = self.poly(x)
-        y_hat = self.subnetwork(y_hat)
+        y_hat = self.poly.forward(x)
+        y_hat = self.subnetwork.forward(y_hat)
         return y_hat
 
     def update_standardization(self, x: Union[Tensor, ndarray]) -> None:

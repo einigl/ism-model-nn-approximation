@@ -9,7 +9,6 @@ meudon-pdr/data/*
 !meudon-pdr/data/*.py
 
 article-notebooks/out-*
-example-notebooks/out-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

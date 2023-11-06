@@ -66,6 +66,9 @@ class EmbeddingNetwork(NeuralNetwork):
             preprocessing = []
         elif not isinstance(preprocessing, List):
             preprocessing = [preprocessing]
+        print("\n\n\n\n\n")
+        print(postprocessing)
+        print("\n\n\n\n\n")
         if any([not isinstance(m, AdditionalModule) for m in preprocessing]):
             raise TypeError(
                 "All elements of preprocessing must be instances of AdditionalModule"
@@ -87,6 +90,9 @@ class EmbeddingNetwork(NeuralNetwork):
             postprocessing = []
         elif not isinstance(postprocessing, List):
             postprocessing = [postprocessing]
+        print("\n\n\n\n\n")
+        print(postprocessing)
+        print("\n\n\n\n\n")
         if any([not isinstance(m, AdditionalModule) for m in postprocessing]):
             raise TypeError(
                 "All elements of postprocessing must be instances of AdditionalModule"
@@ -120,6 +126,6 @@ class EmbeddingNetwork(NeuralNetwork):
 
     def forward(self, x: Tensor) -> Tensor:
         y = self.preprocessing(x)
-        y = self.subnetwork(y)
+        y = self.subnetwork.forward(y)
         y = self.postprocessing(y)
         return y
