@@ -754,7 +754,7 @@ class NeuralNetwork(nn.Module, ABC):
         for name in d:
             if NeuralNetwork._needs_recursion(d[name]):
                 d[name] = d[name].copy()
-            elif NeuralNetwork._needs_iterable_recursion(d[name]):
+            elif NeuralNetwork._needs_list_recursion(d[name]):
                 d[name] = [
                     el.copy() if NeuralNetwork._needs_recursion(el) else el
                     for el in d[name]

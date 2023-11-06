@@ -24,7 +24,7 @@ git clone git@github.com:einigl/ism-model-nn-approximation.git
 
 Alternatively, you can also download a zip file.
 
-This package relies on `pytorch` to build neural networks.
+This package relies on _PyTorch_ to build neural networks.
 It enables to evaluate any neural network, its gradient, and its Hessian matrix efficiently.
 
 If you do not have a Python environment compatible with the above dependencies, we advise you to create a specific conda environment to use this code (<https://conda.io/projects/conda/en/latest/user-guide/>).
