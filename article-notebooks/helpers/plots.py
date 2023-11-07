@@ -487,6 +487,9 @@ class Plotter:
                 X[:, k] = value
                 X_grid[:, k] = value
 
+        X = X.astype("float32")
+        X_grid = X_grid.astype("float32")
+
         # Neural network approximation
         if regression or errors:
             # Evaluate model
@@ -1041,6 +1044,9 @@ class Plotter:
                 X[:, k] = value
             if value is not None and errors:
                 X_grid[:, k] = value
+
+        X = X.astype("float32")
+        X_grid = X_grid.astype("float32")
 
         # Neural network approximation
         if regression or errors:

@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 import datetime
+import shutil
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -68,7 +69,7 @@ def save_losses(
 
     filename = os.path.join(path, "losses.png")
 
-    plt.rc("text", usetex=True)
+    plt.rc("text", usetex=shutil.which("latex") is not None)
 
     plt.figure(dpi=125)
 

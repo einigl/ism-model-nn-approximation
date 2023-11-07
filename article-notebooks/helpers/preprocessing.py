@@ -100,9 +100,9 @@ def load_data_pandas(
     n_inputs = 4
     n_outputs = len(selected_outputs)
 
-    print(f"\nNumber of inputs features: {n_inputs}")
-    print(f"Number of outputs features: {n_outputs:,}")
-    print(f"Number of rows: {len(df_inputs_train)}\n")
+    print(f"\nNumber of input features: {n_inputs:,}")
+    print(f"Number of output features: {n_outputs:,}")
+    print(f"Number of rows: {len(df_inputs_train):,}\n")
 
     # Selecting columns and conversion to arrays
     df_outputs_train = df_outputs_train[selected_outputs]
@@ -167,7 +167,7 @@ def prepare_clusters(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """TODO"""
 
-    path = os.path.join(os.path.dirname(__file__), "..", "clustering", "clusters", "{}")
+    path = os.path.join(os.path.dirname(__file__), "..", "out-clustering", "{}")
 
     with open(path.format(f"{n_clusters}_clusters.json"), "r") as f:
         clusters = json.load(f)
