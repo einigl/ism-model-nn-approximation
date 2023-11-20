@@ -162,12 +162,6 @@ class NeuralNetwork(nn.Module, ABC):
         p = next(self.parameters())
         x = torch.from_numpy(x).to(self.device)
         if x.dtype != p.dtype:
-            warn(
-                (
-                    f"dtype of x ({x.dtype}) must match dtype of the network parameters ({p.dtype})."
-                    "A conversion has been performed, but consider performing this conversion before evaluating the model in the future."
-                )
-            )
             x = x.type(p.dtype)
         with torch.no_grad():
             y = self.forward(x)
