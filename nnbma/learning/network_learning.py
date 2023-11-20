@@ -82,7 +82,7 @@ def learning_procedure(
     train_samples: Optional[Sequence] = None,
     val_samples: Optional[Sequence] = None,
     val_frac: Optional[float] = None,
-    verbose: bool = True,
+    verbose_level: Literal[None, 0, 1, 2] = 1,
     seed: Optional[int] = None,
     max_iter_no_improve: Optional[int] = None,
 ) -> Dict[str, object]:
@@ -104,8 +104,10 @@ def learning_procedure(
         samples to use for validation, by default None.
     val_frac : Optional[float], optional
         proportion of elements of the ``dataset`` to use in the validation set. If specified, should be between 0 and 1. By default None.
-    verbose : bool, optional
-        whether to detail the loss and relative error values evolution during training, by default True.
+    additions_metrics: Optional[dict[str, Callable[[torch.Tensor, torch.Tensor], float]]], optional
+        metrics to track in addition to the loss function, by default None
+    verbose_level : Literal[None, 0, 1, 2], optional
+        amount of information provided during training. 0 or None: no display. 1: display of the epoch bar. 2: display of network description and also epoch and batch bars. Default: 1.
     seed : Optional[int], optional
         random seed for reproducibility, by default None.
     max_iter_no_improve : Optional[int], optional
@@ -211,6 +213,15 @@ def learning_procedure(
             f"learning_parameters must be an instance of LearningParameters, not {type(learning_parameters)}"
         )
 
+    if verbose_level is None:
+        verbose_level = 0
+    elif verbose_level in [0, 1, 2]:
+        pass
+    elif verbose_level in ["0", "1", "2"]:
+        verbose_level = int(verbose_level)
+    else:
+        verbose_level = 1  # Default
+
     if max_iter_no_improve is not None:
         assert isinstance(max_iter_no_improve, int)
         assert max_iter_no_improve >= 1
@@ -267,7 +278,7 @@ def learning_procedure(
 
     # Training loop
 
-    if verbose:
+    if verbose_level >= 2:
         count = model.count_parameters()
         size, unit = model.count_bytes()
         print("Training initiated")
@@ -353,7 +364,7 @@ def learning_procedure(
         n_batchs_train_eval = 1
         n_batchs_val_eval = 1
 
-        pbar_epoch = tqdm(range(epochs), disable=not verbose)
+        pbar_epoch = tqdm(range(epochs), disable=verbose_level < 1)
         pbar_epoch.set_description("Epoch")
 
         for epoch in pbar_epoch:
@@ -383,7 +394,7 @@ def learning_procedure(
                 enumerate(dataloader_train),
                 leave=False,
                 total=n_batchs_train,
-                disable=not verbose,
+                disable=verbose_level < 2,
             )
             pbar_batch.set_description("Batch (training)")
             for _, batch in pbar_batch:
@@ -410,7 +421,7 @@ def learning_procedure(
                 enumerate(dataloader_train_eval),
                 leave=False,
                 total=n_batchs_train_eval,
-                disable=not verbose,
+                disable=verbose_level < 1,
             )
             pbar_batch.set_description("Batch (model eval)")
             for _, batch in pbar_batch:
@@ -444,7 +455,7 @@ def learning_procedure(
                 enumerate(dataloader_val_eval),
                 leave=False,
                 total=n_batchs_val_eval,
-                disable=not verbose,
+                disable=verbose_level < 2,
             )
             pbar_batch.set_description("Batch (validation)")
 
