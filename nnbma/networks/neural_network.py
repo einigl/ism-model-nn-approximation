@@ -6,8 +6,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from inspect import signature
-from typing import List, Literal, Optional, Sequence, Tuple, Union, overload
-from warnings import warn
+from typing import List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 import torch

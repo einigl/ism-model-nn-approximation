@@ -375,7 +375,9 @@ class Plotter:
                 if self._inputs_scales[k] == "log"
                 else "${}={:.2f}$ {}, "
             ).format(self._inputs_latex[k], values[k], self._inputs_units[k])
-        str_title = str_title.replace(" , ", ", ").removesuffix(", ")
+        str_title = str_title.replace(" , ", ", ")
+        if str_title.endswith(", "):  # Avoid using str.removesuffix for Python<3.9
+            str_title = str_title[:-2]
         plt.title(str_title, pad=15, fontsize=int(fontsize * 1.2))
         if legend:
             plt.legend(
@@ -907,7 +909,9 @@ class Plotter:
                 if self._inputs_scales[k] == "log"
                 else "${}={:.1f}$ {}, "
             ).format(self._inputs_latex[k], values[k], self._inputs_units[k])
-        str_title = str_title.replace(" , ", ", ").removesuffix(", ")
+        str_title = str_title.replace(" , ", ", ")
+        if str_title.endswith(", "):  # Avoid using str.removesuffix for Python<3.9
+            str_title = str_title[:-2]
         plt.title(str_title, pad=15, fontsize=int(fontsize * 1.2))
         if legend:
             leg = plt.legend(fontsize=fontsize, handletextpad=-2.0)

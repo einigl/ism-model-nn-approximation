@@ -1,12 +1,11 @@
 from typing import List, Optional, Sequence, Union
 
-# issue with import for python 3.9
+# issue with import for Python < 3.9
 try:
     from itertools import pairwise
 except:
     from more_itertools import pairwise
 
-import torch
 from torch import Tensor, nn
 
 from ..layers import AdditionalModule

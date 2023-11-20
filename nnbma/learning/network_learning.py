@@ -1,6 +1,5 @@
 import datetime
 import random
-from math import log
 from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
