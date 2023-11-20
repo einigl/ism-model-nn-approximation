@@ -163,7 +163,6 @@ def prepare_clusters(
     n_clusters: int,
     lines: Optional[Union[str, List[str]]] = None,
     mols: Optional[Union[str, List[str]]] = None,
-    seed: Optional[int] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """TODO"""
 
@@ -251,10 +250,9 @@ def normalization_operators(
     return Normalizer(df, norm_type), InverseNormalizer(df, norm_type)
 
 
-def build_data_transformers(
+def prepare_data_transformers(
     dataset_train: RegressionDataset,
 ) -> Tuple[Operator, Operator, Operator, Operator]:
-    # x operators
 
     scale_operator_x = ColumnwiseOperator(
         [
@@ -282,11 +280,6 @@ def build_data_transformers(
 
     operator_x = SequentialOperator([scale_operator_x, norm_operator_x])
     inverse_operator_x = SequentialOperator([unnorm_operator_x, unscale_operator_x])
-
-    # y operators
-
-    # operator_y = Operator(log10)
-    # inverse_operator_y = Operator(pow10)
 
     operator_y = Operator(id)
     inverse_operator_y = Operator(id)
