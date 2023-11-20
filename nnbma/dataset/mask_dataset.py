@@ -89,7 +89,7 @@ class MaskDataset(Dataset):
         return self._m
 
     @property
-    def n_outputs(self) -> int:
+    def n_features(self) -> int:
         r"""
         Number of output features.
         """
@@ -101,6 +101,12 @@ class MaskDataset(Dataset):
         Features names.
         """
         return self._features_names
+
+    def features_size(self) -> int:
+        """
+        Returns the number of floating point values in ``m``.
+        """
+        return self.m.numel()
 
     @overload
     def getall(self, numpy: Literal[True]) -> np.ndarray:
@@ -150,7 +156,7 @@ class MaskDataset(Dataset):
         )
 
     def to_pandas(self) -> pd.DataFrame:
-        r"""Converts the mask dataset to two pandas DataFrames.
+        r"""Converts the mask dataset to a pandas DataFrame.
 
         Returns
         -------
@@ -194,9 +200,7 @@ class MaskDataset(Dataset):
             New subset of ``self`` containing all values that were not in `other`.
         """
         if not other.issubsetof(self):
-            raise ValueError(
-                "set2 is not a subset of set1 so it cannot be subtracted."
-            )
+            raise ValueError("set2 is not a subset of set1 so it cannot be subtracted.")
         new_indices = [i for i in range(len(self)) if i not in other.indices]
         # Algo can be improved.
         return MaskDataset(self, new_indices)

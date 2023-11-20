@@ -79,7 +79,19 @@ class Plotter:
         df_mask: Optional[pd.DataFrame] = None,
         model: Optional[NeuralNetwork] = None,
     ):
-        """TODO"""
+        """
+        Plotter for 1D and 2D line profiles.
+
+        Parameters
+        ----------
+        df_inputs: DataFrame
+            Table containing the physical parameters values.
+        df_outputs: DataFrame
+            Table containing the lines intensity values.
+        df_mask: DataFrame, optional
+            Binary table indicating whether a line intensity value is an anomaly.
+            A value of 0 indicates a A value of 0 indicates an anomaly, while a value of 1 indicates reliable intensity.
+        """
         self._model = model
 
         if df_mask is None:

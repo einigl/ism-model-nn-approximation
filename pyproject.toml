@@ -19,7 +19,7 @@ classifiers = [
 repository = "https://github.com/einigl/ism-model-nn-approximation"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.11"
+python = ">=3.8"
 torch = ">=2.0.0, !=2.0.1, !=2.1.0"
 numpy = "^1.20.2"
 matplotlib = "^3.6.2"

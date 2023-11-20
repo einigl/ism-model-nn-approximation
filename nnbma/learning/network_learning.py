@@ -1,7 +1,7 @@
 import datetime
 import random
 from math import log
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -26,15 +26,6 @@ LOG10 = log(10)
 
 class LearningParameters:
     r"""Specifies the main parameters training, including the loss function to minimize and the stochastic gradient descent strategy."""
-
-    # loss_fun: Union[
-    #     Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    #     MaskedLossFunction,
-    # ]
-    # epochs: int
-    # batch_size: Union[int, BatchScheduler, None]
-    # optimizer: Optimizer
-    # scheduler: _LRScheduler
 
     def __init__(
         self,
@@ -166,10 +157,10 @@ def learning_procedure(
     # Start counter
     tic = datetime.datetime.now()
 
-    # if not isinstance(model, NeuralNetwork):
-    #     raise TypeError(
-    #         f"model must be an instance of NeuralNetwork, not {type(model)}"
-    #     )
+    if not isinstance(model, NeuralNetwork):
+        raise TypeError(
+            f"model must be an instance of NeuralNetwork, not {type(model)}"
+        )
 
     if isinstance(dataset, RegressionDataset):
         pass
@@ -215,8 +206,10 @@ def learning_procedure(
             "dataset must not be a tuple when mask_dataset is a MaskDataset"
         )
 
-    # if not isinstance(learning_parameters, LearningParameters):
-    #     raise TypeError(f'learning_parameters must be an instance of LearningParameters, not {type(learning_parameters)}')
+    if not isinstance(learning_parameters, LearningParameters):
+        raise TypeError(
+            f"learning_parameters must be an instance of LearningParameters, not {type(learning_parameters)}"
+        )
 
     if max_iter_no_improve is not None:
         assert isinstance(max_iter_no_improve, int)

@@ -141,6 +141,18 @@ class RegressionDataset(Dataset):
         """
         return self._outputs_names
 
+    def inputs_size(self) -> int:
+        """
+        Returns the number of floating point values in ``x``.
+        """
+        return self.x.numel()
+
+    def outputs_size(self) -> int:
+        """
+        Returns the number of floating point values in ``y``.
+        """
+        return self.y.numel()
+
     def has_nan(self) -> Tuple[bool, bool]:
         """
         Returns a tuple of two boolean.
@@ -387,6 +399,9 @@ class RegressionSubset(RegressionDataset):
         """
         self._dataset: RegressionDataset = dataset
         self._indices: Sequence[int] = indices
+
+        self._inputs_names = dataset.inputs_names
+        self._outputs_names = dataset.outputs_names
 
     def __len__(self) -> int:
         """
