@@ -513,8 +513,7 @@ def learning_procedure(
                 {
                     "train loss": train_loss[-1],
                     "val loss": val_loss[-1],
-                }
-                | add
+                }.update(add)
             )
 
             # Early stopping
