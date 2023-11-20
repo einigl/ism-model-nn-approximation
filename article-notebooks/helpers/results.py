@@ -16,7 +16,7 @@ from helpers.lines import (
     molecules_among_lines,
 )
 from helpers.plots import Plotter
-from helpers.preprocessing import build_data_transformers, prepare_data
+from helpers.preprocessing import prepare_data, prepare_data_transformers
 from tqdm import tqdm
 
 from nnbma.dataset import MaskDataset, RegressionDataset
@@ -98,8 +98,8 @@ def save_relative_errors(
 
     plt.figure(dpi=125)
 
-    plt.semilogy(results["train_relerr"], "b-", label="Training (mean)")
-    plt.semilogy(results["val_relerr"], "r-", label="Validation (mean)")
+    plt.semilogy(next(iter(results["train_metrics"])), "b-", label="Training (mean)")
+    plt.semilogy(next(iter(results["val_metrics"])), "r-", label="Validation (mean)")
 
     plt.grid()
     plt.xlabel("Epoch")
@@ -116,8 +116,8 @@ def save_relative_errors(
 
     plt.figure(dpi=125)
 
-    plt.semilogy(results["train_relerr"], "b-", label="Training (mean)")
-    plt.semilogy(results["val_relerr"], "r-", label="Validation (mean)")
+    plt.semilogy(next(iter(results["train_metrics"])), "b-", label="Training (mean)")
+    plt.semilogy(next(iter(results["val_metrics"])), "r-", label="Validation (mean)")
     plt.ylim([None, 10])
 
     plt.grid()
@@ -421,7 +421,7 @@ def save_results(
         inverse_operator_x,
         operator_y,
         inverse_operator_y,
-    ) = build_data_transformers(dataset_train)
+    ) = prepare_data_transformers(dataset_train)
 
     ## Get predictions
 

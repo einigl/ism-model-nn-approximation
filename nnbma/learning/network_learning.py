@@ -21,8 +21,6 @@ __all__ = [
     "learning_procedure",
 ]
 
-LOG10 = log(10)
-
 
 class LearningParameters:
     r"""Specifies the main parameters training, including the loss function to minimize and the stochastic gradient descent strategy."""
@@ -82,6 +80,9 @@ def learning_procedure(
     train_samples: Optional[Sequence] = None,
     val_samples: Optional[Sequence] = None,
     val_frac: Optional[float] = None,
+    additional_metrics: Optional[
+        Dict[str, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]
+    ] = None,
     verbose_level: Literal[None, 0, 1, 2] = 1,
     seed: Optional[int] = None,
     max_iter_no_improve: Optional[int] = None,
@@ -104,36 +105,27 @@ def learning_procedure(
         samples to use for validation, by default None.
     val_frac : Optional[float], optional
         proportion of elements of the ``dataset`` to use in the validation set. If specified, should be between 0 and 1. By default None.
-    additions_metrics: Optional[dict[str, Callable[[torch.Tensor, torch.Tensor], float]]], optional
+    additional_metrics: Optional[Dict[str, Callable[[torch.Tensor, torch.Tensor], float]]], optional
         metrics to track in addition to the loss function, by default None
     verbose_level : Literal[None, 0, 1, 2], optional
         amount of information provided during training. 0 or None: no display. 1: display of the epoch bar. 2: display of network description and also epoch and batch bars. Default: 1.
     seed : Optional[int], optional
         random seed for reproducibility, by default None.
     max_iter_no_improve : Optional[int], optional
-        early stopping parameter. The training stops when the error on the validation set does not decrease for ``max_iter_no_improve`` steps. By default None.
+        early stopping parameter. The training stops when the loss on the validation set does not decrease for ``max_iter_no_improve`` steps. By default None.
 
     Returns
     -------
     Dict[str, object]
         This dictionary contains:
-
         - "train_loss": the time series of the average train loss per epoch.
-
         - "val_loss": the time series of the validation loss per epoch.
-
-        - "train_relerr": the time series of the average train relative error per epoch.
-
-        - "val_relerr": the time series of the average validation relative error per epoch.
-
+        - "train_metrics": the time series of additional metrics on train set.
+        - "val_metrics": the time series of additional metrics on test set.
         - "train_set": train_set.
-
         - "val_set": val_set.
-
         - "lr": the time series of the learning rate per epoch.
-
         - "batch_size": the time series of the batch size per epoch.
-
         - "duration": total duration of training.
 
     Raises
@@ -212,6 +204,9 @@ def learning_procedure(
         raise TypeError(
             f"learning_parameters must be an instance of LearningParameters, not {type(learning_parameters)}"
         )
+
+    if additional_metrics is None:
+        additional_metrics = {}
 
     if verbose_level is None:
         verbose_level = 0
@@ -299,8 +294,12 @@ def learning_procedure(
 
     train_loss = []
     val_loss = []
-    train_relerr = []
-    val_relerr = []
+    train_metrics = dict.fromkeys(additional_metrics)
+    for key in train_metrics:
+        train_metrics[key] = []
+    val_metrics = dict.fromkeys(additional_metrics)
+    for key in val_metrics:
+        val_metrics[key] = []
     lr = []
     bs = []
 
@@ -311,9 +310,9 @@ def learning_procedure(
             batch_size = len(train_set)
         if isinstance(batch_size, BatchScheduler):
             if batch_size.start is None:
-                batch_size.start = len(train_set)  # TODO ?
+                batch_size.start = len(train_set)  # By default, non-stochastic
             if batch_size.stop is None:
-                batch_size.stop = len(train_set)
+                batch_size.stop = len(train_set)  # By default, non-stochastic
         optimizer = learning_parameter.optimizer
         scheduler = learning_parameter.scheduler
 
@@ -401,7 +400,11 @@ def learning_procedure(
                 optimizer.zero_grad(set_to_none=True)
 
                 loss, _ = _batch_processing(
-                    model, batch, loss_fun, mask_dataset is None, compute_relerr=False
+                    model,
+                    batch,
+                    loss_fun,
+                    mask_dataset is None,
+                    metrics=additional_metrics,
                 )
 
                 loss.backward()
@@ -415,7 +418,9 @@ def learning_procedure(
 
             sizes = []
             memory_loss = []
-            memory_relerr = []
+            memory_metrics = dict.fromkeys(train_metrics.keys())
+            for key in memory_metrics:
+                memory_metrics[key] = []
 
             pbar_batch = tqdm(
                 enumerate(dataloader_train_eval),
@@ -428,28 +433,32 @@ def learning_procedure(
                 sizes.append(batch[0].size(0))
 
                 with torch.no_grad():
-                    loss, relerr = _batch_processing(
+                    loss, mets = _batch_processing(
                         model,
                         batch,
                         loss_fun,
                         mask_dataset is None,
-                        compute_relerr=True,
+                        metrics=additional_metrics,
                     )
 
                 memory_loss.append(loss.item())
-                memory_relerr.append(relerr.item())
+                for key in memory_metrics:
+                    memory_metrics[key].append(mets[key].item())
 
             n_tot = sum(sizes)
             train_loss.append(sum([s / n_tot * l for l, s in zip(memory_loss, sizes)]))
-            train_relerr.append(
-                sum([s / n_tot * err for err, s in zip(memory_relerr, sizes)])
-            )
+            for key in train_metrics:
+                train_metrics[key].append(
+                    sum([s / n_tot * val for val, s in zip(memory_metrics[key], sizes)])
+                )
 
             # Evaluation on validation set
 
             sizes = []
             memory_loss = []
-            memory_relerr = []
+            memory_metrics = dict.fromkeys(val_metrics.keys())
+            for key in memory_metrics:
+                memory_metrics[key] = []
 
             pbar_batch = tqdm(
                 enumerate(dataloader_val_eval),
@@ -463,22 +472,24 @@ def learning_procedure(
                 sizes.append(batch[0].size(0))
 
                 with torch.no_grad():
-                    loss, relerr = _batch_processing(
+                    loss, mets = _batch_processing(
                         model,
                         batch,
                         loss_fun,
                         mask_dataset is None,
-                        compute_relerr=True,
+                        metrics=additional_metrics,
                     )
 
                 memory_loss.append(loss.item())
-                memory_relerr.append(relerr.item())
+                for key in memory_metrics:
+                    memory_metrics[key].append(mets[key].item())
 
             n_tot = sum(sizes)
             val_loss.append(sum([s / n_tot * l for l, s in zip(memory_loss, sizes)]))
-            val_relerr.append(
-                sum([s / n_tot * err for err, s in zip(memory_relerr, sizes)])
-            )
+            for key in val_metrics:
+                val_metrics[key].append(
+                    sum([s / n_tot * val for val, s in zip(memory_metrics[key], sizes)])
+                )
 
             # End of epoch
             if isinstance(scheduler, ReduceLROnPlateau):
@@ -488,13 +499,22 @@ def learning_procedure(
             if isinstance(batch_size, BatchScheduler):
                 batch_size.step()
 
+            if len(additional_metrics) > 0:
+                key = list(additional_metrics.keys())[
+                    0
+                ]  # Display only the first metric
+                add = {
+                    f"train {key}": train_metrics[key][-1],
+                    f"val  {key}": val_metrics[key][-1],
+                }
+            else:
+                add = {}
             pbar_epoch.set_postfix(
                 {
                     "train loss": train_loss[-1],
                     "val loss": val_loss[-1],
-                    "train error": f"{train_relerr[-1]:.2f}%",
-                    "val error": f"{val_relerr[-1]:.2f}%",
                 }
+                | add
             )
 
             # Early stopping
@@ -514,8 +534,8 @@ def learning_procedure(
     return {
         "train_loss": train_loss,
         "val_loss": val_loss,
-        "train_relerr": train_relerr,
-        "val_relerr": val_relerr,
+        "train_metrics": train_metrics,
+        "val_metrics": val_metrics,
         "train_set": train_set,
         "val_set": val_set,
         "lr": lr,
@@ -529,8 +549,8 @@ def _batch_processing(
     batch: Optional[torch.Tensor],
     loss_fun: Callable,
     masked: bool,
-    compute_relerr: bool = False,
-) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    metrics: Dict[str, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]],
+) -> Tuple[torch.Tensor, Optional[Dict[str, torch.Tensor]]]:
     if masked:
         x, y = batch
         m = None
@@ -551,16 +571,15 @@ def _batch_processing(
     else:
         loss = loss_fun(y_hat, y, m)
 
-    if compute_relerr:
+    mets = dict.fromkeys(metrics.keys())
+    for key in mets:
         if m is None:
-            relerr = torch.exp(LOG10 * torch.abs(y_hat.detach() - y))
-            relerr = relerr.mean()
+            dist = metrics[key](y_hat.detach(), y)
+            dist = dist.mean()
         else:
             w = 1.0 / m.sum(dim=0).clip(min=1)
-            relerr = torch.exp(m * LOG10 * torch.abs(y_hat.detach() - y))
-            relerr = (w * relerr).sum(dim=0).mean()
-        relerr = 100 * (relerr - 1)
-    else:
-        relerr = None
+            dist = metrics[key](y_hat.detach(), y)
+            dist = (w * dist).sum(dim=0).mean()
+        mets[key] = dist
 
-    return loss, relerr
+    return loss, mets
