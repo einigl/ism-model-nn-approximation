@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import pytest
 import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
@@ -8,7 +9,8 @@ from torch.func import jacfwd, jacrev, vmap
 from nnbma import FullyConnected
 
 
-def _init() -> FullyConnected:
+@pytest.fixture(scope="module")
+def net() -> FullyConnected:
     layers_sizes = [5, 10, 10, 20]
     activation = nn.ELU()
     net = FullyConnected(
@@ -18,9 +20,7 @@ def _init() -> FullyConnected:
     return net
 
 
-def test_shape():
-    net = _init()
-
+def test_shape(net: FullyConnected):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
     y = net.forward(x)
@@ -28,8 +28,7 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-def test_save_load():
-    net = _init()
+def test_save_load(net: FullyConnected):
     path = os.path.dirname(os.path.abspath(__file__))
 
     net.save("temp-net", path)
@@ -40,9 +39,7 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-def test_derivatives():
-    net = _init()
-
+def test_derivatives(net: FullyConnected):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
 

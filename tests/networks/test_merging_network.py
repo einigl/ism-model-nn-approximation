@@ -1,6 +1,8 @@
 import os
+import random
 import shutil
 
+import pytest
 import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
@@ -8,23 +10,31 @@ from torch.func import jacfwd, jacrev, vmap
 from nnbma import FullyConnected, MergingNetwork
 
 
-def _init() -> MergingNetwork:
+def _init(names) -> MergingNetwork:
     layers_sizes = [5, 10, 10, 5]
     activation = nn.ELU()
-    subnet1 = FullyConnected(layers_sizes, activation)
+    names1 = [f"output-1-{i}" for i in range(layers_sizes[-1])] if names else None
+    subnet1 = FullyConnected(layers_sizes, activation, outputs_names=names1)
 
     layers_sizes = [5, 10, 10, 15]
     activation = nn.ELU()
-    subnet2 = FullyConnected(layers_sizes, activation)
+    names2 = [f"output-2-{i}" for i in range(layers_sizes[-1])] if names else None
+    subnet2 = FullyConnected(layers_sizes, activation, outputs_names=names2)
 
-    net = MergingNetwork([subnet1, subnet2])
+    names = names1 + names2
+    random.seed(0)
+    random.shuffle(names)
+    net = MergingNetwork([subnet1, subnet2], names)
 
     return net
 
 
-def test_shape():
-    net = _init()
+@pytest.fixture(scope="module")
+def net() -> MergingNetwork:
+    return _init(names=True)
 
+
+def test_shape(net: MergingNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
     y = net.forward(x)
@@ -32,8 +42,22 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-def test_save_load():
-    net = _init()
+def test_restrict_to_output_subset(net: MergingNetwork):
+    net.restrict_to_output_subset(None)  # TODO
+    # net.restrict_to_output_subset(['output-1-0', 'output-2-1', 'output-2-1'])
+
+    # x = torch.normal(0, 1, size=(1, net.input_features))
+    # y = net.forward(x)
+    # assert y.shape == (1, 2)
+    # assert torch.isclose(y[:, 1], y[:, 2])
+
+    # net.restrict_to_output_subset(None)
+
+    # y = net.forward(x)
+    # assert y.shape(1, net.output_features)
+
+
+def test_save_load(net: MergingNetwork):
     path = os.path.dirname(os.path.abspath(__file__))
 
     net.save("temp-net", path)
@@ -44,10 +68,7 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-def test_derivatives():
-    net = _init()
-    path = os.path.dirname(os.path.abspath(__file__))
-
+def test_derivatives(net: MergingNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
 

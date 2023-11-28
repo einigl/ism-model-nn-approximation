@@ -123,11 +123,13 @@ class MergingNetwork(NeuralNetwork):
         return torch.concat(res, dim=-1)[..., self.indices]
 
     def restrict_to_output_subset(
-        self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
+        self, output_subset: Optional[Union[Sequence[str], Sequence[int]]] = None
     ) -> None:
         super().restrict_to_output_subset(output_subset)
 
-        if isinstance(output_subset[0], int):
+        if output_subset is None:
+            pass
+        elif isinstance(output_subset[0], int):
             net_start_indices = list(
                 accumulate([0] + [net.output_features for net in self.subnetworks][:-1])
             )

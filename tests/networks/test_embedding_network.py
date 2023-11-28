@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import pytest
 import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
@@ -8,8 +9,9 @@ from torch.func import jacfwd, jacrev, vmap
 from nnbma import AdditionalModuleFromExisting, EmbeddingNetwork, FullyConnected
 
 
-def _init() -> EmbeddingNetwork:
-    preprocessing = None  # layers.AdditionalModule(nn.Identity())
+@pytest.fixture(scope="module")
+def net() -> EmbeddingNetwork:
+    preprocessing = None
     postprocessing = [
         AdditionalModuleFromExisting(None, None, torch.exp),
         AdditionalModuleFromExisting(None, None, torch.log),
@@ -27,9 +29,7 @@ def _init() -> EmbeddingNetwork:
     return net
 
 
-def test_shape():
-    net = _init()
-
+def test_shape(net: EmbeddingNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
     y = net.forward(x)
@@ -37,8 +37,7 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-def test_save_load():
-    net = _init()
+def test_save_load(net: EmbeddingNetwork):
     path = os.path.dirname(os.path.abspath(__file__))
 
     net.save("temp-net", path)
@@ -49,9 +48,7 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-def test_derivatives():
-    net = _init()
-
+def test_derivatives(net: EmbeddingNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
 

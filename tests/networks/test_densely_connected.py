@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import pytest
 import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
@@ -8,7 +9,8 @@ from torch.func import jacfwd, jacrev, vmap
 from nnbma import DenselyConnected
 
 
-def _init() -> DenselyConnected:
+@pytest.fixture(scope="module")
+def net() -> DenselyConnected:
     input_features, output_features = 5, 20
     n_layers = 10
     growing_factor = 0.2
@@ -19,9 +21,7 @@ def _init() -> DenselyConnected:
     return net
 
 
-def test_shape():
-    net = _init()
-
+def test_shape(net: DenselyConnected):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
     y = net.forward(x)
@@ -29,13 +29,11 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-def test_layers():
-    net = _init()
+def test_layers(net: DenselyConnected):
     assert net.layers_sizes == [5, 6, 8, 10, 12, 15, 18, 22, 27, 33, 20]
 
 
-def test_save_load():
-    net = _init()
+def test_save_load(net: DenselyConnected):
     path = os.path.dirname(os.path.abspath(__file__))
 
     net.save("temp-net", path)
@@ -46,9 +44,7 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-def test_derivatives():
-    net = _init()
-
+def test_derivatives(net: DenselyConnected):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
 

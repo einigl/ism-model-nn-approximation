@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import pytest
 import torch
 from torch import nn
 from torch.func import jacfwd, jacrev, vmap
@@ -8,7 +9,8 @@ from torch.func import jacfwd, jacrev, vmap
 from nnbma import FullyConnected, PolynomialExpansion, PolynomialNetwork
 
 
-def _init() -> PolynomialNetwork:
+@pytest.fixture(scope="module")
+def net() -> PolynomialNetwork:
     input_features = 5
     order = 3
     poly_features = PolynomialExpansion.expanded_features(order, input_features)
@@ -25,9 +27,7 @@ def _init() -> PolynomialNetwork:
     return net
 
 
-def test_shape():
-    net = _init()
-
+def test_shape(net: PolynomialNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
     y = net.forward(x)
@@ -35,8 +35,7 @@ def test_shape():
     assert y.shape == (batch_size, net.output_features)
 
 
-def test_save_load():
-    net = _init()
+def test_save_load(net: PolynomialNetwork):
     path = os.path.dirname(os.path.abspath(__file__))
 
     net.save("temp-net", path)
@@ -47,9 +46,7 @@ def test_save_load():
     assert torch.all(net(x) == net2(x))
 
 
-def test_derivatives():
-    net = _init()
-
+def test_derivatives(net: PolynomialNetwork):
     batch_size = 50
     x = torch.normal(0, 1, size=(batch_size, net.input_features))
 

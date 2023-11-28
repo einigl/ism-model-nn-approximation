@@ -126,7 +126,7 @@ class FullyConnected(NeuralNetwork):
         return y_hat
 
     def restrict_to_output_subset(
-        self, output_subset: Optional[Union[Sequence[str], Sequence[int]]]
+        self, output_subset: Optional[Union[Sequence[str], Sequence[int]]] = None
     ) -> None:
         super().restrict_to_output_subset(output_subset)
         if self.last_restrictable:

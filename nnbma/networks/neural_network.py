@@ -316,7 +316,7 @@ class NeuralNetwork(nn.Module, ABC):
                 "output_subset cannot be a list of str when self.outputs_names is None"
             )
         if not self._check_if_sublist(self.outputs_names, output_subset):
-            raise ValueError("output_subset is not a valid subset")
+            raise ValueError("output_subset must be a sublist of actual outputs")
 
         return self._indices_of_sublist(self.outputs_names, output_subset)
 
