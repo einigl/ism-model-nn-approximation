@@ -311,5 +311,5 @@ class MaskSubset(MaskDataset):
         bool
             ``True`` if ``self`` is a subset of ``dataset`` else ``False``.
         """
-        # TODO maybe a better solution is suitable
+        # Maybe a better solution is suitable
         return dataset == self._dataset
