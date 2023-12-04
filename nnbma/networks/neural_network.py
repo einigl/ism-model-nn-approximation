@@ -86,6 +86,7 @@ class NeuralNetwork(nn.Module, ABC):
 
         self.current_output_subset = outputs_names
         self.current_output_subset_indices = list(range(output_features))
+        self.restricted = False
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -239,8 +240,6 @@ class NeuralNetwork(nn.Module, ABC):
             The outputs cannot be restricted when Module is in train mode.
         TypeError
             The ``output_subset`` argument must be a list or None.
-        ValueError
-            The ``output_subset`` list must not be empty.
         TypeError
             The ``output_subset`` argument must be a list of int or a list of str.
         """
@@ -252,12 +251,13 @@ class NeuralNetwork(nn.Module, ABC):
         if output_subset is None:
             self.current_output_subset = self.inputs_names
             self.current_output_subset_indices = list(range(self.output_features))
+            self.restricted = False
             return
 
         if not isinstance(output_subset, List):
             raise TypeError("output_subset must be a list or None")
-        if len(output_subset) == 0:
-            raise ValueError("output_subset must not be empty")
+        # if len(output_subset) == 0:
+        #     raise ValueError("output_subset must not be empty") TODO
 
         if all(isinstance(x, int) for x in output_subset):
             self.current_output_subset = self._names_of_output_subset(output_subset)
@@ -269,6 +269,8 @@ class NeuralNetwork(nn.Module, ABC):
             )
         else:
             raise TypeError("output_subset must be a list of int or a list of str")
+
+        self.restricted = True
 
     def _names_of_output_subset(self, output_subset: List[int]) -> List[str]:
         r"""Returns the names of outputs corresponding to the indices list ``output_subset``.

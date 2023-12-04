@@ -24,7 +24,7 @@ def _init(names) -> MergingNetwork:
     names = names1 + names2
     random.seed(0)
     random.shuffle(names)
-    net = MergingNetwork([subnet1, subnet2], names)
+    net = MergingNetwork([subnet1, subnet2], outputs_names=names)
 
     return net
 
@@ -43,18 +43,28 @@ def test_shape(net: MergingNetwork):
 
 
 def test_restrict_to_output_subset(net: MergingNetwork):
-    net.restrict_to_output_subset(None)  # TODO
-    # net.restrict_to_output_subset(['output-1-0', 'output-2-1', 'output-2-1'])
+    x = torch.normal(0, 1, size=(1, net.input_features))
+    names = ["output-1-0", "output-2-1", "output-2-1"]
 
-    # x = torch.normal(0, 1, size=(1, net.input_features))
-    # y = net.forward(x)
-    # assert y.shape == (1, 2)
-    # assert torch.isclose(y[:, 1], y[:, 2])
+    net.restrict_to_output_subset(names)
+    y1 = net.forward(x).detach()
+    assert y1.shape == (1, 3)
+    assert torch.isclose(y1[:, 1], y1[:, 2]).all()
 
-    # net.restrict_to_output_subset(None)
+    net.restrict_to_output_subset([net.outputs_names.index(name) for name in names])
+    y2 = net.forward(x).detach()
+    assert y2.shape == (1, 3)
+    assert torch.isclose(y2[:, 1], y2[:, 2]).all()
 
-    # y = net.forward(x)
-    # assert y.shape(1, net.output_features)
+    assert torch.isclose(y1, y2).all()
+
+    net.restrict_to_output_subset([])
+    y = net.forward(x).detach()
+    assert y.shape == (1, 0)
+
+    net.restrict_to_output_subset(None)
+    y = net.forward(x).detach()
+    assert y.shape == (1, net.output_features)
 
 
 def test_save_load(net: MergingNetwork):
