@@ -728,7 +728,7 @@ class NeuralNetwork(nn.Module, ABC):
         module: nn.Module = type_module(**d)
 
         sd = module.state_dict()
-        sd.update(torch.load(template.format("state_dict.pth")))
+        sd.update(torch.load(template.format("state_dict.pth"), weights_only=True))
         module.load_state_dict(sd)
 
         return module

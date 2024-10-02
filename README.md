@@ -29,6 +29,6 @@ It enables to evaluate any neural network, its gradient, and its Hessian matrix 
 
 If you do not have a Python environment compatible with the above dependencies, we advise you to create a specific conda environment to use this code (<https://conda.io/projects/conda/en/latest/user-guide/>).
 
-## Reference
+## References
 
 \[1\] Palud, P. & Einig, L. & Le Petit, F. & Bron, E. & Chainais, P. & Chanussot, J. & Pety, J. & Thouvenin, P.-A. & Languignon, D. & Beslić, I. & G. Santa-Maria, M. & Orkisz, J.H. & Ségal, L. & Zakardjian, A. & Bardeau, S. & Gerin, M. & Goicoechea, J.R. & Gratier, P. & Guzman, V. (2023). Neural network-based emulation of interstellar medium models. Astronomy & Astrophysics. 10.1051/0004-6361/202347074.
