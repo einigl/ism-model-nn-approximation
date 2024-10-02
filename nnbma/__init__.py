@@ -1,4 +1,6 @@
-__version__ = "1.0.2"
+import importlib.metadata
+
+__version__ = importlib.metadata.version("nnbma")
 
 from .dataset import *
 from .layers import *

@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/nnbma.svg)](https://badge.fury.io/py/nnbma)
 [![Documentation Status](https://readthedocs.org/projects/ism-model-nn-approximation/badge/?version=latest)](https://ism-model-nn-approximation.readthedocs.io/en/latest/?badge=latest)
-![test coverage](./docs/coverage.svg)
+![](./coverage.svg)
 
 Neural network-based model approximation `nnbma` is a Python package that handle the creation and the training of neural networks to approximate numerical models.
 In \[1\], it was designed and used to derive an approximation of the Meudon PDR code, a complex astrophysical numerical code.

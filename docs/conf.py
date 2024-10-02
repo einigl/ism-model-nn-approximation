@@ -15,13 +15,15 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../"))
 
+import importlib.metadata
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "nnbma"
 copyright = "2023, Lucas Einig, Pierre Palud"
 author = "Lucas Einig, Pierre Palud"
-release = "0.1.0"
+release = importlib.metadata.version("nnbma")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
