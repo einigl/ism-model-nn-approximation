@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nnbma"
-version = ["version"]
+version = "1.0.2"
 authors = [
   "Lucas Einig", "Pierre Palud",
 ]
@@ -17,6 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 repository = "https://github.com/einigl/ism-model-nn-approximation"
+packages=[{include="nnbma"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
