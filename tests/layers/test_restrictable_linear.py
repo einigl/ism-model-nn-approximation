@@ -30,10 +30,11 @@ def test_forward():
     layer = RestrictableLinear(n_dim_in, n_dim_out)
     layer.eval()  # ensure not training mode
 
-    x = torch.ones((1, n_dim_in))
+    N = 1000
+    x = torch.normal(mean=torch.zeros((N, n_dim_in)), std=torch.ones((N, n_dim_in)))
     y_full = layer.forward(x).numpy()
 
     layer.restrict_to_output_subset(list_indices_restricted)
 
     y_small = layer.forward(x).numpy()
-    assert np.allclose(y_full[:, list_indices_restricted], y_small[:, :])
+    assert np.max(np.abs(y_full[:, list_indices_restricted] - y_small[:, :])) == 0.0

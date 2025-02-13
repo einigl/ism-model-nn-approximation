@@ -249,7 +249,7 @@ class NeuralNetwork(nn.Module, ABC):
             )
 
         if output_subset is None:
-            self.current_output_subset = self.inputs_names
+            self.current_output_subset = self.outputs_names
             self.current_output_subset_indices = list(range(self.output_features))
             self.restricted = False
             return
